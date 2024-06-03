@@ -32,8 +32,8 @@ class AuthController extends Controller
             "SSenior" => 3,
             "Senior" => 4,
             "Master" => 5,
-            "Senior Agent"=>6,
-            "Agent" => 7,
+            // "Senior Agent"=>6,
+            "Agent" => 6,
             default => null,
         };
     

@@ -39,6 +39,7 @@ class PayoutService
         $homeGoals = $match->home_goals;
         $awayGoals = $match->away_goals;
         $totalGoals = $homeGoals + $awayGoals;
+        $pecial_odd_team = $match->special_odd_team;
         $special_odd_first_digit = $match->special_odd_first_digit;
         $special_odd_sign = $match->special_odd_sign;
         $special_odd_value = $match->special_odd_last_sign;
@@ -49,7 +50,9 @@ class PayoutService
 
         switch($bet->selected_outcome){
             case 'W1':
-                return 0;
+                if($special_odd_first_digit == '0'){
+
+                }
             case 'W2':
                 return 0;
             case 'Over':
