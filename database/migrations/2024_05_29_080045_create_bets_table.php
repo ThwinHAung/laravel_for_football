@@ -21,7 +21,7 @@ return new class extends Migration
             $table->enum('selected_outcome',['W1','W2','Over','Under','Null']);
             $table->decimal('amount',8,2);
             $table->decimal('potential_wining_amount',8,2);
-            $table->enum('status',['Accepted','Win','Lose','Refund',])->nullable();
+            $table->enum('status',['Accepted','Win','Lose','Refund',])->default('Accepted');
             $table->decimal('wining_amount')->default(0.0);
             $table->timestamps();
         });

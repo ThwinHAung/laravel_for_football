@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('bet_id');
             $table->unsignedBigInteger('match_id');
             $table->enum('selected_outcome',['W1','W2','Over','Under']);
+            $table->enum('status',['Accepted','Win','Lose','Refund',])->default('Accepted');
             $table->timestamps();
         });
         Schema::table('accumulators', function (Blueprint $table) {

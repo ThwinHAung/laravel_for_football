@@ -40,7 +40,7 @@ Route::group([
     Route::get("retrieve_matchesHistory",[MatchesController::class,'matchHistory']);
     Route::get("addingCommissions",[TaxesController::class,'addCommissions']);
     Route::get("retrievetaxes",[TaxesController::class,'getTaxes']);
-    Route::get("getBetSlip",[BetController::class,'getBetSlip']);
+    Route::get("getBetSlip/{id}",[BetController::class,'getBetSlip']);
 
     Route::get("logout",[AuthController::class,"logout"]);
 });
