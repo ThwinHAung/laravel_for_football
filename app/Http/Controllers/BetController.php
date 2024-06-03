@@ -7,6 +7,8 @@ use App\Models\Bets;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+
 class BetController extends Controller
 {
     //
@@ -69,30 +71,26 @@ class BetController extends Controller
         return response()->json(['message' => 'Accumulator bet placed successfully'], 200);
     }
 
-    public function getBetSlip(Request $request)
+    public function getBetSlip($id)
     {
-
-        $yesterday = Carbon::yesterday()->startOfDay();
-        $today = Carbon::today()->endOfDay();
-
-        // Fetch single bets for the given user for yesterday and today
-        $singleBets = Bets::where('user_id', $request->user_id)
+        $startOfToday = Carbon::today();
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+        $endOfYesterday = $startOfToday->subSecond();
+    
+        $singleBets = Bets::where('user_id', $id)
             ->where('bet_type', 'single')
-            ->whereBetween('created_at', [$yesterday, $today])
+            ->where('status', 'Accepted')
+            ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
             ->get();
 
-        // Fetch accumulator bets for the given user for yesterday and today
-        $accumulatorBets = Bets::where('user_id', $request->user_id)
-            ->where('bet_type', 'accumulator')
-            ->whereBetween('created_at', [$yesterday, $today])
-            ->with('accumulators')
-            ->get();
+        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets]);
 
-        return response()->json([
-            'singleBets' => $singleBets,
-            'accumulatorBets' => $accumulatorBets
-        ]);
-
+        // $accumulatorBets = Bets::where('user_id', $request->user_id)
+        //     ->where('bet_type', 'accumulator')
+        //     ->whereBetween('created_at', [$yesterday, $today])
+        //     ->with('accumulators')
+        //     ->get();
         
     }
     
