@@ -71,16 +71,24 @@ class BetController extends Controller
         return response()->json(['message' => 'Accumulator bet placed successfully'], 200);
     }
 
-    public function getBetSlip($id)
+    public function getBetSlip($username)
     {
         $startOfToday = Carbon::today();
         $endOfToday = Carbon::tomorrow()->subSecond();
         $startOfYesterday = Carbon::yesterday();
         $endOfYesterday = $startOfToday->subSecond();
+
+        $user = User::where('username', $username)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $user_id = $user->id;
     
-        $singleBets = Bets::where('user_id', $id)
+        $singleBets = Bets::where('user_id', $user_id)
             ->where('bet_type', 'single')
-            ->where('status', 'Accepted')
+            ->select('bets.id','bets.match_id','bets.selected_outcome','bets.amount','bets.status','bets.wining_amount')
             ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
             ->get();
 

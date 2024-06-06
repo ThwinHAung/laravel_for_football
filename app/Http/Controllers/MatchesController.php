@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\MatchFinished;
 use App\Models\Matches;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use PhpParser\Node\Expr\Match_;
 
@@ -75,10 +76,13 @@ class MatchesController extends Controller
 
         $match->status = 'completed';
         $match->save();
+        Log::info('Match status updated', ['match_id' => $match->id, 'status' => 'completed']);
+
+
+
         MatchFinished::dispatch($match);
-
-
         return response()->json(['message' => 'Match status updated to completed'], 200);
+
     }
     public function deleteMatch(Request $request)
     {

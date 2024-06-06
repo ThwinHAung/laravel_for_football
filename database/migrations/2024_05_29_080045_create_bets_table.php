@@ -16,11 +16,10 @@ return new class extends Migration
         Schema::create('bets', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('match_id');
+            $table->unsignedBigInteger('match_id')->nullable();
             $table->enum('bet_type',['single','accumulator']);
-            $table->enum('selected_outcome',['W1','W2','Over','Under','Null']);
+            $table->enum('selected_outcome',['W1','W2','Over','Under'])->nullable();
             $table->decimal('amount',8,2);
-            $table->decimal('potential_wining_amount',8,2);
             $table->enum('status',['Accepted','Win','Lose','Refund',])->default('Accepted');
             $table->decimal('wining_amount')->default(0.0);
             $table->timestamps();
