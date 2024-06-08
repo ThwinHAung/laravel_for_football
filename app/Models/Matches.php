@@ -23,4 +23,8 @@ class Matches extends Model
         'home_goals',
         'away_goals',
     ];
+    public function accumulators()
+    {
+        return $this->hasMany(Accumulator::class, 'match_id');
+    }
 }

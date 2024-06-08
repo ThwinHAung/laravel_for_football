@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Events\MatchFinished;
+use App\Models\Accumulator;
 use App\Models\Matches;
+use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -55,7 +57,7 @@ class MatchesController extends Controller
             ->get();
         return response()->json($pending_matches, 200);
     }
-    public function match_status(Request $request){
+    public function match_status(Request $request,PayoutService $payoutService){
         $validator = Validator::make($request->all(),[
             "match_id"=>"required",
             "home_goals"=>"required",
@@ -77,8 +79,6 @@ class MatchesController extends Controller
         $match->status = 'completed';
         $match->save();
         Log::info('Match status updated', ['match_id' => $match->id, 'status' => 'completed']);
-
-
 
         MatchFinished::dispatch($match);
         return response()->json(['message' => 'Match status updated to completed'], 200);
@@ -141,6 +141,8 @@ class MatchesController extends Controller
         ->get();
     return response()->json($pending_matches, 200);
     }
+
+
 
     
 

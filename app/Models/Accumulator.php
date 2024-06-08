@@ -16,11 +16,11 @@ class Accumulator extends Model
 
     public function bet()
     {
-        return $this->belongsTo(Bets::class);
+        return $this->belongsTo(Bets::class,'bet_id');
     }
 
     public function match()
     {
-        return $this->belongsTo(Matches::class);
+        return $this->belongsTo(Matches::class,'match_id');
     }
 }

@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Accumulator;
 use App\Models\Bets;
+use App\Models\Matches;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BetController extends Controller
 {
@@ -53,7 +55,7 @@ class BetController extends Controller
                 'user_id' => $user_id,
                 'match_id' => null, 
                 'bet_type' => 'accumulator',
-                'selected_outcome' => 'Null', 
+                'selected_outcome' => null, 
                 'amount' => $request->amount,
             ]);
     
@@ -76,7 +78,6 @@ class BetController extends Controller
         $startOfToday = Carbon::today();
         $endOfToday = Carbon::tomorrow()->subSecond();
         $startOfYesterday = Carbon::yesterday();
-        $endOfYesterday = $startOfToday->subSecond();
 
         $user = User::where('username', $username)->first();
 
@@ -92,15 +93,31 @@ class BetController extends Controller
             ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
             ->get();
 
-        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets]);
+        $accumulatorBets = DB::table('bets')
+        ->leftJoin('accumulators', 'bets.id', '=', 'accumulators.bet_id')
+        ->select(
+            'bets.id',
+            'bets.amount',
+            'bets.status',
+            'bets.wining_amount',
+            DB::raw('COUNT(accumulators.id) AS match_count')
+        )
+        ->where('bets.user_id', $user_id)
+        ->where('bets.bet_type', 'accumulator')
+        ->whereBetween('bets.created_at', [$startOfYesterday, $endOfToday])
+        ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount')
+        ->get();
 
-        // $accumulatorBets = Bets::where('user_id', $request->user_id)
-        //     ->where('bet_type', 'accumulator')
-        //     ->whereBetween('created_at', [$yesterday, $today])
-        //     ->with('accumulators')
-        //     ->get();
+        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets,'accumulatorBets'=>$accumulatorBets]);
+
         
     }
-    
+    // public function singleBetSlipMatchHistory(){
+    //     $pending_matches = Matches::where('status', 'completed')
+    //     ->join('leagues', 'matches.league_id', '=', 'leagues.id')
+    //     ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.home_goals', 'matches.away_goals',)
+    //     ->get();
+    // return response()->json($pending_matches, 200);
+    // }
 
 }

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('match_id');
             $table->enum('selected_outcome',['W1','W2','Over','Under']);
             $table->enum('status',['Accepted','Win','Lose','Refund',])->default('Accepted');
+            $table->decimal('wining_odd')->default(1.0);
             $table->timestamps();
         });
         Schema::table('accumulators', function (Blueprint $table) {
