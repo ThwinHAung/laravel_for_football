@@ -41,6 +41,8 @@ Route::group([
     Route::get("addingCommissions",[TaxesController::class,'addCommissions']);
     Route::get("retrievetaxes",[TaxesController::class,'getTaxes']);
     Route::get("getBetSlip/{id}",[BetController::class,'getBetSlip']);
-
+    Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
+    Route::get("getAccumulatorBetSlip/{bet_id}",[BetController::class,'getAccumulatorBetSlip']);
+    
     Route::get("logout",[AuthController::class,"logout"]);
 });

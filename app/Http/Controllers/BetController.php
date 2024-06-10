@@ -75,7 +75,6 @@ class BetController extends Controller
 
     public function getBetSlip($username)
     {
-        $startOfToday = Carbon::today();
         $endOfToday = Carbon::tomorrow()->subSecond();
         $startOfYesterday = Carbon::yesterday();
 
@@ -87,11 +86,21 @@ class BetController extends Controller
 
         $user_id = $user->id;
     
-        $singleBets = Bets::where('user_id', $user_id)
-            ->where('bet_type', 'single')
-            ->select('bets.id','bets.match_id','bets.selected_outcome','bets.amount','bets.status','bets.wining_amount')
-            ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
-            ->get();
+        $singleBets = DB::table('bets')
+        ->select(
+            'id',
+            'match_id',
+            'selected_outcome',
+            'amount',
+            'status',
+            'wining_amount',
+            DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') as created_at")
+        )
+        ->where('user_id', $user_id)
+        ->where('bet_type', 'single')
+        ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
+        ->get();
+
 
         $accumulatorBets = DB::table('bets')
         ->leftJoin('accumulators', 'bets.id', '=', 'accumulators.bet_id')
@@ -100,24 +109,152 @@ class BetController extends Controller
             'bets.amount',
             'bets.status',
             'bets.wining_amount',
+            'bets.created_at',
             DB::raw('COUNT(accumulators.id) AS match_count')
         )
         ->where('bets.user_id', $user_id)
         ->where('bets.bet_type', 'accumulator')
         ->whereBetween('bets.created_at', [$startOfYesterday, $endOfToday])
-        ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount')
+        ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount','bets.created_at')
         ->get();
+
+        
 
         return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets,'accumulatorBets'=>$accumulatorBets]);
 
         
     }
-    // public function singleBetSlipMatchHistory(){
-    //     $pending_matches = Matches::where('status', 'completed')
-    //     ->join('leagues', 'matches.league_id', '=', 'leagues.id')
-    //     ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.home_goals', 'matches.away_goals',)
-    //     ->get();
-    // return response()->json($pending_matches, 200);
-    // }
+    public function getSingleBetSlip($bet_id){
+        $bet = DB::table('bets')
+        ->join('matches', 'bets.match_id', '=', 'matches.id')
+        ->join('leagues', 'matches.league_id', '=', 'leagues.id')
+        ->where('bets.id', $bet_id)
+        ->select(
+            'bets.selected_outcome',
+            'bets.amount',
+            'bets.status',
+            'bets.wining_amount',
+            'matches.home_match',
+            'matches.away_match',
+            'matches.match_time',
+            'matches.special_odd_team',
+            'matches.special_odd_first_digit',
+            'matches.special_odd_sign',
+            'matches.special_odd_last_digit',
+            'matches.over_under_first_digit',
+            'matches.over_under_sign',
+            'matches.over_under_last_digit',
+            'matches.home_goals',
+            'matches.away_goals',
+            'matches.status as match_status',
+            'leagues.name as league_name'
+        )
+        ->first();
+
+        if ($bet) {
+            $response = [
+                'message' => 'Successful fetch',
+                'bet' => [
+                    'selected_outcome' => $bet->selected_outcome,
+                    'amount' => $bet->amount,
+                    'user_status' => $bet->status,
+                    'wining_amount' => $bet->wining_amount,
+                    'league_name' => $bet->league_name,
+                    'home_match' => $bet->home_match,
+                    'away_match' => $bet->away_match,
+                    'match_time' => $bet->match_time,
+                    'special_odd_team' => $bet->special_odd_team,
+                    'special_odd_first_digit' => $bet->special_odd_first_digit,
+                    'special_odd_sign' => $bet->special_odd_sign,
+                    'special_odd_last_digit' => $bet->special_odd_last_digit,
+                    'over_under_first_digit' => $bet->over_under_first_digit,
+                    'over_under_sign' => $bet->over_under_sign,
+                    'over_under_last_digit' => $bet->over_under_last_digit,
+                    'home_goals' => $bet->home_goals,
+                    'away_goals' => $bet->away_goals,
+                    'status' => $bet->status,
+                ]
+            ];
+            
+            return response()->json($response);
+        } else {
+            return response()->json([
+                'message' => 'Bet not found',
+            ], 404);
+        }
+
+    }
+    public function getAccumulatorBetSlip($bet_id)
+    {
+        $bet = DB::table('bets')
+            ->where('id', $bet_id)
+            ->where('bet_type', 'accumulator')
+            ->first();
+    
+        if (!$bet) {
+            return response()->json([
+                'message' => 'Accumulator bet slip not found',
+            ], 404);
+        }
+
+        $accumulator_entries = DB::table('accumulators')
+            ->join('matches', 'accumulators.match_id', '=', 'matches.id')
+            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
+            ->where('accumulators.bet_id', $bet_id)
+            ->select(
+                'accumulators.selected_outcome',
+                'matches.home_match',
+                'matches.away_match',
+                'matches.match_time',
+                'matches.special_odd_team',
+                'matches.special_odd_first_digit',
+                'matches.special_odd_sign',
+                'matches.special_odd_last_digit',
+                'matches.over_under_first_digit',
+                'matches.over_under_sign',
+                'matches.over_under_last_digit',
+                'matches.home_goals',
+                'matches.away_goals',
+                'matches.status as match_status',
+                'leagues.name as league_name'
+            )
+            ->get();
+    
+        if ($accumulator_entries->isEmpty()) {
+            return response()->json([
+                'message' => 'No matches found for the accumulator bet slip',
+            ], 404);
+        }
+    
+        $response = [
+            'message' => 'Successful fetch',
+            'bet' => [
+                'amount' => $bet->amount,
+                'status' => $bet->status,
+                'wining_amount' => $bet->wining_amount,
+            ],
+            'accumulator_entries' => $accumulator_entries->map(function ($entry) {
+                return [
+                    'selected_outcome' => $entry->selected_outcome,
+                    'league_name' => $entry->league_name,
+                    'home_match' => $entry->home_match,
+                    'away_match' => $entry->away_match,
+                    'match_time' => $entry->match_time,
+                    'special_odd_team' => $entry->special_odd_team,
+                    'special_odd_first_digit' => $entry->special_odd_first_digit,
+                    'special_odd_sign' => $entry->special_odd_sign,
+                    'special_odd_last_digit' => $entry->special_odd_last_digit,
+                    'over_under_first_digit' => $entry->over_under_first_digit,
+                    'over_under_sign' => $entry->over_under_sign,
+                    'over_under_last_digit' => $entry->over_under_last_digit,
+                    'home_goals' => $entry->home_goals,
+                    'away_goals' => $entry->away_goals,
+                ];
+            }),
+        ];
+    
+        return response()->json($response);
+    }
+    
 
 }
