@@ -6,7 +6,6 @@ use App\Models\Accumulator;
 use App\Models\Matches;
 use App\Models\Bets;
 use App\Models\User;
-use Carbon\PHPStan\Macro;
 use Illuminate\Support\Facades\DB;
 
 class PayoutService
@@ -36,14 +35,32 @@ class PayoutService
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
+        $agentCommission = $bet->amount * 0.01;
+        $this->updateAgentBalance($bet->user_id, $agentCommission);
 
-        if ($potentialWinningAmount > 0) {
+
+
+        if ($potentialWinningAmount > $bet->amount) {
+            $winningAmount = $potentialWinningAmount - $bet->amount;
+            $leagueName = DB::table('matches')
+            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
+            ->where('matches.id', $match->id)
+            ->value('leagues.name');
+            $taxRate = $this->getTaxRate($leagueName);
+            $taxAmount = $winningAmount * $taxRate;
+            $netWinnings = $winningAmount - $taxAmount;
+            
+            $bet->status = 'Win';
+            $bet->wining_amount = $netWinnings + $bet->amount; 
+            $this->updateUserBalance($bet->user_id, $netWinnings + $bet->amount);
+        } else if($potentialWinningAmount > 0){
             $bet->status = 'Win';
             $bet->wining_amount = $potentialWinningAmount;
             $this->updateUserBalance($bet->user_id, $bet->wining_amount);
-        } else {
+        }else{
             $bet->status = 'Lose';
         }
+
         $bet->save();
     }
 
@@ -99,25 +116,25 @@ class PayoutService
     
         if ($specialOddTeam == 'H') {
             if ($goalDifference > $specialOddFirstDigit) {
-                return $amount * 2; // More than special odd goals difference
+                return $amount * 2; 
             } elseif ($goalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); // Exactly special odd goals difference
+                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
             } elseif ($goalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); // Special odds draw case
+                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
             } else {
-                return 0; // Less than special odd goals difference
+                return 0; 
             }
         } elseif ($specialOddTeam == 'A') {
             $adjustedGoalDifference = -$goalDifference;
     
             if ($adjustedGoalDifference > $specialOddFirstDigit) {
-                return 0; // More than special odd goals difference (opposite case)
+                return 0; 
             } elseif ($adjustedGoalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); // Exactly special odd goals difference (opposite case)
+                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); 
             } elseif ($adjustedGoalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); // Special odds draw case (opposite)
+                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100);
             } else {
-                return $amount * 2; // Less than special odd goals difference (opposite case)
+                return $amount * 2; 
             }
         }
     }
@@ -128,31 +145,36 @@ class PayoutService
     
         if ($specialOddTeam == 'A') {
             if ($goalDifference > $specialOddFirstDigit) {
-                return $amount * 2; // More than special odd goals difference
+                return $amount * 2; 
             } elseif ($goalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); // Exactly special odd goals difference
+                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
             } elseif ($goalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); // Special odds draw case
+                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
             } else {
-                return 0; // Less than special odd goals difference
+                return 0; 
             }
         } elseif ($specialOddTeam == 'H') {
             $adjustedGoalDifference = -$goalDifference;
     
             if ($adjustedGoalDifference > $specialOddFirstDigit) {
-                return 0; // More than special odd goals difference (opposite case)
+                return 0; 
             } elseif ($adjustedGoalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); // Exactly special odd goals difference (opposite case)
+                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); 
             } elseif ($adjustedGoalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); // Special odds draw case (opposite)
+                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); 
             } else {
-                return $amount * 2; // Less than special odd goals difference (opposite case)
+                return $amount * 2; 
             }
         }
     }
 
     protected function calculateAccumulatorPayout(Accumulator $accumulator,Matches $match){
         $potentialWiningOdd = $this->calculatePotentialWinningOdd($accumulator,$match);
+        $betId = $accumulator->bet_id;
+        $bet = Bets::find($betId);
+
+        $agentCommission = $bet->amount * 0.01;
+        $this->updateAgentBalance($bet->user_id, $agentCommission);
 
         if($potentialWiningOdd > 0){
             $accumulator->status = 'Win';
@@ -280,12 +302,44 @@ class PayoutService
                 $bet->status = 'Lose';
             } else {
                 $bet->status = 'Win';
-                $bet->wining_amount = $winningAmount;
-                $this->updateUserBalance($bet->user_id, $winningAmount);
+                $matchCount = $accumulatorBets->count;
+                $taxRate = $this->getAccumulatorTaxRate($matchCount);
+                $taxAmount = $winningAmount * $taxRate;
+                $netWinnings = $winningAmount - $taxAmount;
+                $bet->wining_amount = $netWinnings;
+                $this->updateUserBalance($bet->user_id, $netWinnings);
             }
     
             $bet->save();
         }
     }
+
+    protected function updateAgentBalance($userId, $commissionAmount)
+    {
+        $user = User::find($userId);
+        if ($user && $user->created_by) {
+            $agent = User::find($user->created_by);
+            if ($agent) {
+                $newBalance = $agent->balance + $commissionAmount;
+                $agent->balance = $newBalance;
+                $agent->save();
+            }
+        }
+    }
+    protected function getTaxRate($leagueName)
+    {
+        $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
+        return in_array($leagueName, $topLeagues) ? 0.06 : 0.08;
+    }
+    protected function getAccumulatorTaxRate($matchCount)
+{
+    if ($matchCount < 4) {
+        return 0.15;
+    } elseif ($matchCount <= 10) {
+        return 0.20; 
+    } else {
+        return 0.0; 
+    }
+}
     
 }
