@@ -172,9 +172,12 @@ class PayoutService
         $potentialWiningOdd = $this->calculatePotentialWinningOdd($accumulator,$match);
         $betId = $accumulator->bet_id;
         $bet = Bets::find($betId);
+        $user_id = $bet->user_id;
+        $bet_amount = $bet->amount;
 
-        $agentCommission = $bet->amount * 0.01;
-        $this->updateAgentBalance($bet->user_id, $agentCommission);
+        $accumulatorBets = Accumulator::where('bet_id', $betId)->get();
+        $matchCount = $accumulatorBets->count;
+        $this->updateAgentBalanceAccumulator($matchCount,$user_id,$bet_amount);
 
         if($potentialWiningOdd > 0){
             $accumulator->status = 'Win';
@@ -314,9 +317,9 @@ class PayoutService
         }
     }
 
-    protected function updateAgentBalance($userId, $commissionAmount)
+    protected function updateAgentBalance($user_id, $commissionAmount)
     {
-        $user = User::find($userId);
+        $user = User::find($user_id);
         if ($user && $user->created_by) {
             $agent = User::find($user->created_by);
             if ($agent) {
@@ -325,6 +328,31 @@ class PayoutService
                 $agent->save();
             }
         }
+    }
+
+    protected function updateAgentBalanceAccumulator($matchCount,$user_id,$bet_amount){
+        if($matchCount < 4){
+            $user = User::find($user_id);
+            if ($user && $user->created_by) {
+                $agent = User::find($user->created_by);
+                if ($agent) {
+                    $commissionAmount = $bet_amount * 0.07;
+                    $agent->balance += $$commissionAmount;
+                    $agent->save();
+                }
+            }
+        }elseif($matchCount < 12){
+            $user = User::find($user_id);
+            if ($user && $user->created_by) {
+                $agent = User::find($user->created_by);
+                if ($agent) {
+                    $commissionAmount = $bet_amount * 0.15;
+                    $agent->balance += $$commissionAmount;
+                    $agent->save();
+                }
+            }
+        }
+
     }
     protected function getTaxRate($leagueName)
     {
@@ -335,7 +363,7 @@ class PayoutService
 {
     if ($matchCount < 4) {
         return 0.15;
-    } elseif ($matchCount <= 10) {
+    } elseif ($matchCount <= 11) {
         return 0.20; 
     } else {
         return 0.0; 

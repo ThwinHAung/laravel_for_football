@@ -24,7 +24,9 @@ class User extends Authenticatable
         'phone_number',
         'balance',
         'role_id',
-        'created_by'
+        'created_by',
+        'max_singleBet',
+        'max_mixBet'
     ];
     protected $dates = ['deleted_at'];
 
