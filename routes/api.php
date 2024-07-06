@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::post("login", [AuthController::class,"login"]);
+Route::post('/auto-login', [AuthController::class, 'autoLogin']);
 
 Route::group([
     "middleware"=> ["auth:api"],

@@ -13,12 +13,15 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('taxes', function (Blueprint $table) {
+        Schema::create('single_commissions', function (Blueprint $table) {
             $table->id();
-            $table->integer('match_count');
-            $table->decimal('tax_rate', 5, 2);
-            $table->enum('calculateOn',['High','Low'])->nullable();
+            $table->unsignedBigInteger('user_id');
+            $table->tinyInteger('high');
+            $table->tinyInteger('low');
             $table->timestamps();
+        });
+        Schema::table('single_commissions',function (Blueprint $table){
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -29,6 +32,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('taxes');
+        Schema::dropIfExists('single_commissions');
     }
 };

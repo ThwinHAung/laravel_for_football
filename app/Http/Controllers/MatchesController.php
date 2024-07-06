@@ -6,6 +6,7 @@ use App\Events\MatchFinished;
 use App\Models\Accumulator;
 use App\Models\Matches;
 use App\Services\PayoutService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -135,9 +136,14 @@ class MatchesController extends Controller
     }
 
     public function matchHistory(){
+
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+
         $pending_matches = Matches::where('status', 'completed')
         ->join('leagues', 'matches.league_id', '=', 'leagues.id')
         ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.home_goals', 'matches.away_goals',)
+        ->whereBetween('created_at',[$startOfYesterday,$endOfToday])
         ->get();
     return response()->json($pending_matches, 200);
     }

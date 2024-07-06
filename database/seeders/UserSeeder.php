@@ -19,6 +19,7 @@ class UserSeeder extends Seeder
         //chges
         //
         $user =[
+            "realname"=>"YYK",
             "username"=>"AllFather47",
             "password"=>Hash::make("supersuperadmin"),
             "phone_number"=>"0629183200",

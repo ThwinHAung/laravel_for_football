@@ -13,27 +13,32 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('commissions', function (Blueprint $table) {
+        Schema::create('mix_bet_commissions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('match_count');
-            $table->boolean('percent')->default(true);
+            $table->tinyInteger('m2');
+            $table->tinyInteger('m3');
+            $table->tinyInteger('m4');
+            $table->tinyInteger('m5');
+            $table->tinyInteger('m6');
+            $table->tinyInteger('m8');
+            $table->tinyInteger('m9');
+            $table->tinyInteger('m10');
+            $table->tinyInteger('m11');
             $table->timestamps();
         });
-        Schema::table('commissions',function (Blueprint $table){
+        Schema::table('mix_bet_commissions',function (Blueprint $table){
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('match_count')->references('id')->on('taxes')->onDelete('cascade');
         });
     }
 
     /**
-     * 
      * Reverse the migrations.
      *
      * @return void
      */
     public function down()
     {
-        Schema::dropIfExists('commissions');
+        Schema::dropIfExists('mix_bet_commissions');
     }
 };

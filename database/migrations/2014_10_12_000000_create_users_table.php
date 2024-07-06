@@ -15,12 +15,15 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('realname');
             $table->string('username')->unique();
             $table->string('password');
             $table->string('phone_number');
             $table->decimal('balance',8,2)->default('0.0');
             $table->unsignedBigInteger('role_id');
             $table->unsignedBigInteger('created_by')->nullable();
+            $table->decimal('maxSingleBet',8,2)->default(0);
+            $table->decimal('maxMixBet',8,2)->default(0);
             $table->rememberToken();
             $table->timestamps();
             $table->string('status')->default('active');

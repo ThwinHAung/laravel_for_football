@@ -20,9 +20,7 @@ class RoleSeeder extends Seeder
             ['name'=>'SSSenior','parent_role_id'=>null],
             ['name'=> 'SSenior','parent_role_id'=>1],
             ['name'=> 'Senior','parent_role_id'=> 2],
-            // ['name'=> 'Senior Master','parent_role_id'=>3],
             ['name'=> 'Master','parent_role_id'=>3],
-            // ['name'=> 'Senior Agent','parent_role_id'=> 5],
             ['name'=> 'Agent','parent_role_id'=> 4],
             ['name'=> 'User','parent_role_id'=> 5],
         ];
@@ -31,3 +29,5 @@ class RoleSeeder extends Seeder
         }
     }
 }
+            // ['name'=> 'Senior Master','parent_role_id'=>3],
+            // ['name'=> 'Senior Agent','parent_role_id'=> 5],

@@ -361,7 +361,7 @@ class PayoutService
     }
     protected function getAccumulatorTaxRate($matchCount)
 {
-    if ($matchCount < 4) {
+    if ($matchCount < 3) {
         return 0.15;
     } elseif ($matchCount <= 11) {
         return 0.20; 
