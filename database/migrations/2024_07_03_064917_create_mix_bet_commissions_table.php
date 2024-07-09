@@ -21,6 +21,7 @@ return new class extends Migration
             $table->tinyInteger('m4');
             $table->tinyInteger('m5');
             $table->tinyInteger('m6');
+            $table->tinyInteger('m7');
             $table->tinyInteger('m8');
             $table->tinyInteger('m9');
             $table->tinyInteger('m10');

@@ -48,4 +48,16 @@ class StatusController extends Controller
         $user->delete();
         return response()->json(['message' => 'User soft deleted successfully']);
     }
+    public function getMixBets(Request $request,$username){
+        $user = User::where('username', $username)->first();
+        if($user){
+            $maxSingleBet = $user->maxSingleBet;
+            $maxMixBet = $user->maxMixBet;
+            return response()->json(['maxSingleBet'=>$maxSingleBet,'maxMixBet'=>$maxMixBet],200);
+        }
+        else{
+            return response()->json(['error'],400);
+        }
+
+    }
 }

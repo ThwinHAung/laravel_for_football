@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MixBetCommissions;
 use App\Models\SingleCommissions;
 use App\Models\Transition;
 use Illuminate\Http\Request;
@@ -12,35 +13,37 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(Request $request){
+    public function register(Request $request) {
+
         $validator = Validator::make($request->all(), [
-            "realname"=>"required|string",
+            "realname" => "required|string",
             "username" => "required|string|unique:users",
             "password" => "required|confirmed|min:8",
             "phone_number" => "required",
             "balance" => "nullable|numeric",
-            "maxSingleBet"=>"required|numeric",
-            "maxMixBet"=>"required|numeric",
-            // "high"=>"required|numeric|in:0,1",
-            // "low"=>"required|numeric|in:0,1",
-            // "mixBet2Commission"=>"required|numeric|in:0,7",
-            // "mixBet3Commission"=>"required|numeric|in:0,15",
-            // "mixBet4Commission"=>"required|numeric|in:0,15",
-            // "mixBet5Commission"=>"required|numeric|in:0,15",
-            // "mixBet6Commission"=>"required|numeric|in:0,15",
-            // "mixBet7Commission"=>"required|numeric|in:0,15",
-            // "mixBet8Commission"=>"required|numeric|in:0,15",
-            // "mixBet9Commission"=>"required|numeric|in:0,15",
-            // "mixBet10Commission"=>"required|numeric|in:0,15",
-            // "mixBet11Commission"=>"required|numeric|in:0,15",
+            "maxSingleBet" => "required|numeric",
+            "maxMixBet" => "required|numeric",
+            "high" => "required|numeric|in:0,1",
+            "low" => "required|numeric|in:0,1",
+            "mixBet2Commission" => "required|numeric|in:0,7",
+            "mixBet3Commission" => "required|numeric|in:0,15",
+            "mixBet4Commission" => "required|numeric|in:0,15",
+            "mixBet5Commission" => "required|numeric|in:0,15",
+            "mixBet6Commission" => "required|numeric|in:0,15",
+            "mixBet7Commission" => "required|numeric|in:0,15",
+            "mixBet8Commission" => "required|numeric|in:0,15",
+            "mixBet9Commission" => "required|numeric|in:0,15",
+            "mixBet10Commission" => "required|numeric|in:0,15",
+            "mixBet11Commission" => "required|numeric|in:0,15",
         ]);
     
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()], 400);
         }
+    
         $creator_role = auth()->user()->role->name;
         $creator_id = auth()->user()->id;
-
+    
         $creator = User::find($creator_id);
     
         $role_id = match ($creator_role) {
@@ -48,7 +51,6 @@ class AuthController extends Controller
             "SSenior" => 3,
             "Senior" => 4,
             "Master" => 5,
-            // "Senior Agent"=>6,
             "Agent" => 6,
             default => null,
         };
@@ -56,46 +58,79 @@ class AuthController extends Controller
         if ($role_id !== null) {
             $balance = $request->balance ?? 0;
     
-            // Check for roles other than SSSenior and validate balance
             if ($creator_role !== 'SSSenior' && $balance > 0) {
                 if ($creator->balance < $balance) {
                     return response()->json(['message' => 'Insufficient balance'], 400);
                 }
-    
-                // Deduct balance from creator
                 $creator->balance -= $balance;
                 $creator->save();
             }
     
+            if ($creator_role !== 'SSSenior') {
+                $creator_single_commissions = SingleCommissions::where('user_id', $creator_id)->first();
+                $creator_mix_commissions = MixBetCommissions::where('user_id', $creator_id)->first();
+                $creator_maxBet = User::where('user_id',$creator_id)->first();
+    
+                if ($creator_single_commissions->high == 0 && $request->high != 0) {
+                    return response()->json(['message' => 'High single bet commission cannot be passed'], 400);
+                }
+                if ($creator_single_commissions->low == 0 && $request->low != 0) {
+                    return response()->json(['message' => 'Low single bet commission cannot be passed'], 400);
+                }
+                
+                for ($i = 2; $i <= 11; $i++) {
+                    $field = 'm' . $i;
+                    if ($creator_mix_commissions->$field == 0 && $request->input('mixBet' . $i . 'Commission') != 0) {
+                        return response()->json(['message' => "Accumulator bet commission for $i matches cannot be passed"], 400);
+                    }
+                }
+                if($creator_maxBet->maxSingleBet < $request->maxSingleBet || $creator_maxBet->maxMixBet < $request->maxMixBet){
+                    return response()->json(['message'=>"You cannot give max bet amount more than you have"],400);
+                }
+                
+            }
             $user = User::create([
-                'realname'=>$request->realname,
+                'realname' => $request->realname,
                 'username' => $request->username,
                 'password' => bcrypt($request->password),
                 'phone_number' => $request->input('phone_number'),
                 'balance' => $balance,
                 'role_id' => $role_id,
-                'created_by' => $creator_id
-            ]);
-
-            SingleCommissions::create([
-                'user_id'=>$user->id,
-                'high'=>$request->high,
-                'low'=>$request->low
-
+                'created_by' => $creator_id,
+                'maxSingleBet'=>$request->maxSingleBet,
+                'maxMixBet'=>$request->maxMixBet,
             ]);
     
-            // Record transition for SSSenior only
+                SingleCommissions::create([
+                    'user_id' => $user->id,
+                    'high' => $request->high,
+                    'low' => $request->low
+                ]);
+    
+                MixBetCommissions::create([
+                    'user_id' => $user->id,
+                    "m2" => $request->input('mixBet2Commission'),
+                    "m3" => $request->input('mixBet3Commission'),
+                    "m4" => $request->input('mixBet4Commission'),
+                    "m5" => $request->input('mixBet5Commission'),
+                    "m6" => $request->input('mixBet6Commission'),
+                    "m7" => $request->input('mixBet7Commission'),
+                    "m8" => $request->input('mixBet8Commission'),
+                    "m9" => $request->input('mixBet9Commission'),
+                    "m10" => $request->input('mixBet10Commission'),
+                    "m11" => $request->input('mixBet11Commission'),
+                ]);
+    
             if ($creator_role === 'SSSenior') {
-                if($request->balance > 0){
+                if ($request->balance > 0) {
                     Transition::create([
                         'user_id' => $user->id,
                         'amount' => $balance,
                     ]);
                 }
             }
-
     
-            return response()->json(['message' => 'Signup successful','user_id'=>$user->id], 200);
+            return response()->json(['message' => 'Signup successful', 'user_id' => $user->id], 200);
         } else {
             return response()->json(['message' => 'Invalid role'], 400);
         }
