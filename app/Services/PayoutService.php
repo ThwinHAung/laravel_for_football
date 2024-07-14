@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Accumulator;
 use App\Models\Matches;
 use App\Models\Bets;
+use App\Models\SingleCommissions;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -34,18 +35,16 @@ class PayoutService
 
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
+        $leagueName = DB::table('matches')
+        ->join('leagues', 'matches.league_id', '=', 'leagues.id')
+        ->where('matches.id', $match->id)
+        ->value('leagues.name');
+
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
-        $agentCommission = $bet->amount * 0.01;
-        $this->updateAgentBalance($bet->user_id, $agentCommission);
-
-
+        $this->distributeSingleBetCommissions($bet->user_id,$leagueName,$bet->bet_amount);
 
         if ($potentialWinningAmount > $bet->amount) {
             $winningAmount = $potentialWinningAmount - $bet->amount;
-            $leagueName = DB::table('matches')
-            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
-            ->where('matches.id', $match->id)
-            ->value('leagues.name');
             $taxRate = $this->getTaxRate($leagueName);
             $taxAmount = $winningAmount * $taxRate;
             $netWinnings = $winningAmount - $taxAmount;
@@ -360,14 +359,42 @@ class PayoutService
         return in_array($leagueName, $topLeagues) ? 0.06 : 0.08;
     }
     protected function getAccumulatorTaxRate($matchCount)
-{
-    if ($matchCount < 3) {
-        return 0.15;
-    } elseif ($matchCount <= 11) {
-        return 0.20; 
-    } else {
-        return 0.0; 
+    {
+        if ($matchCount < 3) {
+            return 0.15;
+        } elseif ($matchCount <= 11) {
+            return 0.20; 
+        } else {
+            return 0.0; 
+        }
     }
-}
+
+    protected function distributeSingleBetCommissions($user_id,$leagueName,$bet_amount){
+        $singleCommissions = SingleCommissions::where('user_id',$user_id)->first();
+        $user = User::find($user_id);
+        $currentUserId = $user_id;
+
+        $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
+        $isHighBet = in_array($leagueName, $topLeagues);
+
+        while($currentUserId){
+            if($isHighBet){
+                $shouldPassCommission = $singleCommissions->high;
+                $commissionRate = 0.01;
+            }else{
+                $shouldPassCommission = $singleCommissions->low;
+                $commissionRate = 0.01;
+            }
+            if($shouldPassCommission == 0){
+                $parentUser = User::find($user->created_by);
+                $currentUserId = $parentUser ? $parentUser->id : null;
+            }else{
+                $commissionAmount = $bet_amount * $commissionRate;
+                $this->updateUserBalance($currentUserId, $commissionAmount);
+            }
+
+        }
+    }
+
     
 }

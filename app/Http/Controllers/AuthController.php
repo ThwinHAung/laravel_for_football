@@ -15,6 +15,41 @@ class AuthController extends Controller
 {
     public function register(Request $request) {
 
+        $customMessages = [
+            'required' => 'Fill all fields',
+            'realname.string'=>'Nickname must be String',
+            'username.unique' => 'Username is already selected',
+            'password.min' => 'Password must be at least 8 characters',
+            'password.confirmed'=>'Password must be matched',
+            'balance.numeric' => 'Balance must be numeric',
+            'maxSingleBet.numeric' => 'Max Bet Amount must be numeric',
+            'maxMixBet.numeric' => 'Max Bet Amount must be numeric',
+            'high.numeric '=> 'Commissions percent must be numeric',
+            'low.numeric' => 'Commissions percent must be numeric',
+            'mixBet2Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet3Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet4Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet5Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet6Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet7Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet8Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet9Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet10Commission.numeric' => 'Commissions percent must be numeric',
+            'mixBet11Commission.numeric' => 'Commissions percent must be numeric',
+            'high.in' => 'High must be 0 or 1',
+            'low.in' => 'Low must be 0 or 1',
+            'mixBet2Commission.in' => 'Mix Bet 2 Commission must be 0 or 7',
+            'mixBet3Commission.in' => 'Mix Bet 3 Commission must be 0 or 15',
+            'mixBet4Commission.in' => 'Mix Bet 4 Commission must be 0 or 15',
+            'mixBet5Commission.in' => 'Mix Bet 5 Commission must be 0 or 15',
+            'mixBet6Commission.in' => 'Mix Bet 6 Commission must be 0 or 15',
+            'mixBet7Commission.in' => 'Mix Bet 7 Commission must be 0 or 15',
+            'mixBet8Commission.in' => 'Mix Bet 8 Commission must be 0 or 15',
+            'mixBet9Commission.in' => 'Mix Bet 9 Commission must be 0 or 15',
+            'mixBet10Commission.in' => 'Mix Bet 10 Commission must be 0 or 15',
+            'mixBet11Commission.in' => 'Mix Bet 11 Commission must be 0 or 15',
+        ];
+
         $validator = Validator::make($request->all(), [
             "realname" => "required|string",
             "username" => "required|string|unique:users",
@@ -35,10 +70,26 @@ class AuthController extends Controller
             "mixBet9Commission" => "required|numeric|in:0,15",
             "mixBet10Commission" => "required|numeric|in:0,15",
             "mixBet11Commission" => "required|numeric|in:0,15",
-        ]);
+
+        ],$customMessages);
     
         if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()], 400);
+            $errors = $validator->errors()->all();
+        
+            // Check if there are any 'required' errors
+            $hasRequiredError = false;
+            foreach ($errors as $error) {
+                if ($error === 'Fill all fields') {
+                    $hasRequiredError = true;
+                    break;
+                }
+            }
+        
+            if ($hasRequiredError) {
+                return response()->json(['message' => 'Fill all fields'], 400);
+            }
+        
+            return response()->json(['message' => $error], 400);
         }
     
         $creator_role = auth()->user()->role->name;
@@ -69,7 +120,6 @@ class AuthController extends Controller
             if ($creator_role !== 'SSSenior') {
                 $creator_single_commissions = SingleCommissions::where('user_id', $creator_id)->first();
                 $creator_mix_commissions = MixBetCommissions::where('user_id', $creator_id)->first();
-                $creator_maxBet = User::where('user_id',$creator_id)->first();
     
                 if ($creator_single_commissions->high == 0 && $request->high != 0) {
                     return response()->json(['message' => 'High single bet commission cannot be passed'], 400);
@@ -84,7 +134,7 @@ class AuthController extends Controller
                         return response()->json(['message' => "Accumulator bet commission for $i matches cannot be passed"], 400);
                     }
                 }
-                if($creator_maxBet->maxSingleBet < $request->maxSingleBet || $creator_maxBet->maxMixBet < $request->maxMixBet){
+                if(($request->maxSingleBet > $creator->maxSingleBet) || ($request->maxMixBet > $creator->maxMixBet)){
                     return response()->json(['message'=>"You cannot give max bet amount more than you have"],400);
                 }
                 
