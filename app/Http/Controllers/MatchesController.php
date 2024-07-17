@@ -58,7 +58,7 @@ class MatchesController extends Controller
             ->get();
         return response()->json($pending_matches, 200);
     }
-    public function match_status(Request $request,PayoutService $payoutService){
+    public function match_status(Request $request){
         $validator = Validator::make($request->all(),[
             "match_id"=>"required",
             "home_goals"=>"required",
@@ -135,17 +135,18 @@ class MatchesController extends Controller
         return response()->json(['message' => 'Match updated successfully'], 200);
     }
 
-    public function matchHistory(){
-
+    public function matchHistory()
+    {
         $endOfToday = Carbon::tomorrow()->subSecond();
         $startOfYesterday = Carbon::yesterday();
-
+    
         $pending_matches = Matches::where('status', 'completed')
-        ->join('leagues', 'matches.league_id', '=', 'leagues.id')
-        ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.home_goals', 'matches.away_goals',)
-        ->whereBetween('created_at',[$startOfYesterday,$endOfToday])
-        ->get();
-    return response()->json($pending_matches, 200);
+            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
+            ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.home_goals', 'matches.away_goals')
+            ->whereBetween('matches.created_at', [$startOfYesterday, $endOfToday])
+            ->get();
+        
+        return response()->json($pending_matches, 200);
     }
 
 

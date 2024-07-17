@@ -16,7 +16,8 @@ return new class extends Migration
         Schema::create('transitions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->decimal('amount',10,2);
+            $table->decimal('amount',11,2);
+            $table->decimal('before',11,2);
             $table->timestamps();
         });
         Schema::table('transitions', function (Blueprint $table) {
