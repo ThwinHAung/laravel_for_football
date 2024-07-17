@@ -196,9 +196,7 @@ class AuthController extends Controller
             return response()->json(['message' => $validator->errors()], 400);
         }
     
-        $user = User::where("username", $request->username)
-                    ->whereNull('deleted_at') 
-                    ->first(); 
+        $user = User::where("username", $request->username)->first(); 
     
         if(!empty($user)){
             if($user->status === 'postponed') {
