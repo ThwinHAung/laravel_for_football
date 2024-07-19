@@ -226,7 +226,7 @@ class AuthController extends Controller
     }
     public function getCreatedUsers(){
     $userId = auth()->user()->id;
-    $createdUsers = User::where('created_by', $userId)->whereNull('deleted_at')->select('id','username','phone_number','balance')->get();
+    $createdUsers = User::where('created_by', $userId)->select('id','username','phone_number','balance')->get();
 
     return response()->json(['created_users' => $createdUsers], 200);
     }
