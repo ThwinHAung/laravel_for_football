@@ -36,6 +36,7 @@ Route::group([
 
 
     Route::get("getmemberlist", [AuthController::class,"getCreatedUsers"]);
+    Route::get("getUserDetails/{id}", [AuthController::class,"getUserDetails"]);
     Route::get("get_balance",[AuthController::class,"balance"]);
     Route::get("maxAmountBets/{username}",[StatusController::class,"getMixBets"]);
     Route::get("retrieve_matchesHistory",[MatchesController::class,'matchHistory']);
