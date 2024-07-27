@@ -6,7 +6,6 @@ use App\Models\MixBetCommissions;
 use App\Models\SingleCommissions;
 use App\Models\Transition;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -107,15 +106,6 @@ class AuthController extends Controller
         };
     //sd
         if ($role_id !== null) {
-            $balance = $request->balance ?? 0;
-    
-            if ($creator_role !== 'SSSenior' && $balance > 0) {
-                if ($creator->balance < $balance) {
-                    return response()->json(['message' => 'Insufficient balance'], 400);
-                }
-                $creator->balance -= $balance;
-                $creator->save();
-            }
     
             if ($creator_role !== 'SSSenior') {
                 $creator_single_commissions = SingleCommissions::where('user_id', $creator_id)->first();
@@ -134,10 +124,24 @@ class AuthController extends Controller
                         return response()->json(['message' => "Accumulator bet commission for $i matches cannot be passed"], 400);
                     }
                 }
-                if(($request->maxSingleBet > $creator->maxSingleBet) || ($request->maxMixBet > $creator->maxMixBet)){
+                $maxSingleBetRequest = intval($request->maxSingleBet);
+                $maxMixBetRequest = intval($request->maxMixBet);
+                $maxSingleBetCreator = intval($creator->maxSingleBet);
+                $maxMixBetCreator = intval($creator->maxMixBet);
+
+                if(($maxSingleBetRequest > $maxSingleBetCreator) || ($maxMixBetRequest > $maxMixBetCreator)){
                     return response()->json(['message'=>"You cannot give max bet amount more than you have"],400);
                 }
                 
+            }
+            $balance = $request->balance ?? 0;
+
+            if ($creator_role !== 'SSSenior' && $balance > 0) {
+                if ($creator->balance < $balance) {
+                    return response()->json(['message' => 'Insufficient balance'], 400);
+                }
+                $creator->balance -= $balance;
+                $creator->save();
             }
             $user = User::create([
                 'realname' => $request->realname,
@@ -170,6 +174,8 @@ class AuthController extends Controller
                     "m10" => $request->input('mixBet10Commission'),
                     "m11" => $request->input('mixBet11Commission'),
                 ]);
+
+
     
             if ($creator_role === 'SSSenior') {
                 if ($request->balance > 0) {
@@ -187,6 +193,7 @@ class AuthController extends Controller
     }
     
     public function login(Request $request){
+
         $validator = Validator::make($request->all(), [
             "username" => "required|string",
             "password" => "required",
@@ -236,14 +243,33 @@ class AuthController extends Controller
         $userAccumulatorCommissions = MixBetCommissions::where('user_id',$id)->select('m2','m3','m4','m5','m6','m7','m8','m9','m10','m11')->get();
         return response()->json(['user_details'=>$userDetails,'single_commissions'=>$userSingleCommissions,'mix_commissions'=>$userAccumulatorCommissions],200);
     }
-    public function change_passowrd(Request $request){
+    public function change_passowrd_user(Request $request){
+        $customMessages = [
+            'required' => 'Fill all fields',
+            'new_password.confirmed'=>'Password do not match',
+            'new_password.min:8'=>'Password must be at least 8 characters'
+        ];
         $validator = Validator::make($request->all(), [
             "current_password"=>"required",
             "new_password"=>"required|confirmed|min:8"
-        ]);
+        ],$customMessages);
     
         if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()], 400);
+            $errors = $validator->errors()->all();
+        
+            $hasRequiredError = false;
+            foreach ($errors as $error) {
+                if ($error === 'Fill all fields') {
+                    $hasRequiredError = true;
+                    break;
+                }
+            }
+        
+            if ($hasRequiredError) {
+                return response()->json(['message' => 'Fill all fields'], 400);
+            }
+        
+            return response()->json(['message' => $error], 400);
         }
         $user_id = auth()->user()->id;
         $user = User::find($user_id);
@@ -254,6 +280,78 @@ class AuthController extends Controller
         }else{
             return response()->json(['message' => 'Current Password is successfully'], 400);
         }
+    }
+    public function change_passowrd(Request $request){
+        $customMessages = [
+            'required' => 'Fill all fields',
+            'new_password.confirmed'=>'Password do not match',
+            'new_password.min:8'=>'Password must be at least 8 characters'
+        ];
+        $validator = Validator::make($request->all(), [
+            "new_password"=>"required|confirmed|min:8"
+        ],$customMessages);
+    
+        if ($validator->fails()) {
+            $errors = $validator->errors()->all();
+        
+            $hasRequiredError = false;
+            foreach ($errors as $error) {
+                if ($error === 'Fill all fields') {
+                    $hasRequiredError = true;
+                    break;
+                }
+            }
+        
+            if ($hasRequiredError) {
+                return response()->json(['message' => 'Fill all fields'], 400);
+            }
+        
+            return response()->json(['message' => $error], 400);
+        }
+        $user_id = auth()->user()->id;
+        $user = User::find($user_id);
+        if(Hash::check($request->current_password,$user->password)){
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+            return response()->json(['message' => 'Password changed successfully'], 200);
+        }else{
+            return response()->json(['message' => 'Current Password is successfully'], 400);
+        }
+    }
+    public function editBasicInfo(Request $request,$id){
+        $customMessages = [
+            'required'=>'Fill all fields',
+            'real.string'=>'Nickname must be String',
+            'phone_number.numeric'=>'Phone number must be numeric'
+        ];
+        $validator = Validator::make($request->all(), [
+            "realname" => "required|string",
+            "phone_number" => "required|numeric",
+        ],$customMessages);
+        if ($validator->fails()) {
+            $errors = $validator->errors()->all();
+        
+            $hasRequiredError = false;
+            foreach ($errors as $error) {
+                if ($error === 'Fill all fields') {
+                    $hasRequiredError = true;
+                    break;
+                }
+            }
+        
+            if ($hasRequiredError) {
+                return response()->json(['message' => 'Fill all fields'], 400);
+            }
+        
+            return response()->json(['message' => $error], 400);
+        }
+        $user = User::find($id);
+        $user->realname = $request->input('realname');
+        $user->phone_number = $request->input('phone_number');
+        $user->save();
+
+        return response()->json(['message'=>'Successfully edited'],200);
+
     }
 
 }

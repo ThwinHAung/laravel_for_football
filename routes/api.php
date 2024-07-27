@@ -22,20 +22,25 @@ Route::group([
     Route::get("leagues",[LeagueController::class,"retrieves_league"]);
     Route::post("addingmatch",[MatchesController::class,"add_match"]);
     Route::get("retrieve_match",[MatchesController::class,'retrieve_match']);
-    Route::post("adding_units", [TransitionController::class,"addUnits"]);
-    Route::post("reducing_units", [TransitionController::class,"reducedUnits"]);
+    Route::post("manageUnits", [TransitionController::class,"manageUnits"]);
     Route::post("transition", [TransitionController::class,"record_transition"]);
     Route::post("postpone_user",[StatusController::class,"set_postpone"]);
     Route::post("unpostpone_user",[StatusController::class,"unset_postpone"]);
     Route::post("add_body_match",[BetController::class,"placeSingleBet"]);
     Route::post("add_maung_matches",[BetController::class,"placeAccumulatorBet"]);
     Route::post("delete_user",[StatusController::class,"delete_user"]);
+    Route::post("change_password_user",[AuthController::class,"change_passowrd_user"]);
     Route::post("change_password",[AuthController::class,"change_passowrd"]);
     Route::post("deleteMatch",[MatchesController::class,"deleteMatch"]);
     Route::put('editMatches/{id}', [MatchesController::class, 'edit_match']);
 
-
+    
+    Route::post("editBetLimit",[BetController::class,'editBetLimit']);
+    Route::post("SingleCommissions",[BetController::class,'SingleCommissions']);
+    Route::post("editMix3to11Commissions",[BetController::class,'editMix3to11Commissions']);
+    Route::post("editMix2Commissions",[BetController::class,'editMix2Commissions']);
     Route::get("getmemberlist", [AuthController::class,"getCreatedUsers"]);
+    Route::post("editBasicInfo/{id}", [AuthController::class,"editBasicInfo"]);
     Route::get("getUserDetails/{id}", [AuthController::class,"getUserDetails"]);
     Route::get("get_balance",[AuthController::class,"balance"]);
     Route::get("maxAmountBets/{username}",[StatusController::class,"getMixBets"]);

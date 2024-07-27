@@ -22,8 +22,8 @@ return new class extends Migration
             $table->decimal('balance',11,2)->default('0.0');
             $table->unsignedBigInteger('role_id');
             $table->unsignedBigInteger('created_by')->nullable();
-            $table->decimal('maxSingleBet',9,2)->default(0);
-            $table->decimal('maxMixBet',9,2)->default(0);
+            $table->unsignedBigInteger('maxSingleBet')->default(0);
+            $table->unsignedBigInteger('maxMixBet')->default(0);
             $table->rememberToken();
             $table->timestamps();
             $table->string('status')->default('active');
