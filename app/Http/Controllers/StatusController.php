@@ -9,7 +9,7 @@ use App\Models\User;
 class StatusController extends Controller
 {
     //
-    public function set_postpone(Request $request){
+    public function suspend_user(Request $request){
         $validator = Validator::make($request->all(), [
             "user_id"=>"required|exists:users,id",
         ]);
@@ -18,12 +18,11 @@ class StatusController extends Controller
             return response()->json(['message' => $validator->errors()], 400);
         }
         $user = User::find($request->input('user_id'));
-        $user->status = 'postponed';
+        $user->status = 'suspended';
         $user->save();
-        return response()->json(['message' => 'User postpone successfully'],200);
-
+        return response()->json(['message' => 'User suspended successfully'],200);
     }
-    public function unset_postpone(Request $request){
+    public function unsuspend_user(Request $request){
         $validator = Validator::make($request->all(), [
             "user_id"=>"required|exists:users,id",
         ]);
@@ -34,8 +33,10 @@ class StatusController extends Controller
         $user = User::find($request->input('user_id'));
         $user->status = 'active';
         $user->save();
-        return response()->json(['message' => 'User postpone successfully'],200);
+        return response()->json(['message' => 'User unsuspended successfully'],200);
     }
+    
+    
     public function delete_user(Request $request){
         $validator = Validator::make($request->all(), [
             "user_id"=>"required|exists:users,id",

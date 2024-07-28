@@ -287,11 +287,35 @@ class BetController extends Controller
         
             return response()->json(['message' => $error], 400);
         }
-        $user = User::find($request->input('user_id'));
-        $user->maxSingleBet = $request->input('maxSingleBet');
-        $user->maxMixBet = $request->input('maxMixBet');
-        $user->save();
-        return response()->json(['message'=>'Successfully updated'],200);
+        $creator_role = auth()->user()->role->name;
+        $creator_id = auth()->user()->id;
+        $creator = User::find($creator_id);
+        $maxSingleBetRequest = intval($request->maxSingleBet);
+        $maxMixBetRequest = intval($request->maxMixBet);
+        if($creator_role !== 'SSSenior'){
+            $maxSingleBetCreator = intval($creator->maxSingleBet);
+            $maxMixBetCreator = intval($creator->maxMixBet);
+            if(($maxSingleBetRequest > $maxSingleBetCreator) || ($maxMixBetRequest > $maxMixBetCreator)){
+                return response()->json(['message'=>"You cannot give max bet amount more than you have"],400);
+            }else{
+                $user = User::find($request->input('user_id'));
+                $user->maxSingleBet = $request->input('maxSingleBet');
+                $user->maxMixBet = $request->input('maxMixBet');
+                $user->save();
+                return response()->json(['message'=>'Successfully updated'],200);
+            }
+        }else{
+            $user = User::find($request->input('user_id'));
+            $user->maxSingleBet = $request->input('maxSingleBet');
+            $user->maxMixBet = $request->input('maxMixBet');
+            $user->save();
+            return response()->json(['message'=>'Successfully updated'],200);
+        }
+
+
+
+
+
     }
 
     public function SingleCommissions(Request $request){

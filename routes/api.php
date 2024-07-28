@@ -24,8 +24,8 @@ Route::group([
     Route::get("retrieve_match",[MatchesController::class,'retrieve_match']);
     Route::post("manageUnits", [TransitionController::class,"manageUnits"]);
     Route::post("transition", [TransitionController::class,"record_transition"]);
-    Route::post("postpone_user",[StatusController::class,"set_postpone"]);
-    Route::post("unpostpone_user",[StatusController::class,"unset_postpone"]);
+    Route::post("suspend_user",[StatusController::class,"suspend_user"]);
+    Route::post("unsuspend_user",[StatusController::class,"unsuspend_user"]);
     Route::post("add_body_match",[BetController::class,"placeSingleBet"]);
     Route::post("add_maung_matches",[BetController::class,"placeAccumulatorBet"]);
     Route::post("delete_user",[StatusController::class,"delete_user"]);

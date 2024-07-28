@@ -206,8 +206,8 @@ class AuthController extends Controller
         $user = User::where("username", $request->username)->first(); 
     
         if(!empty($user)){
-            if($user->status === 'postponed') {
-                return response()->json(["message"=> "Your account is postponed"], 403);
+            if($user->status === 'suspended') {
+                return response()->json(["message"=> "Your account is suspended. Contact your agent!"], 403);
             }
     
             if(Hash::check($request->password, $user->password)){
@@ -238,7 +238,7 @@ class AuthController extends Controller
     return response()->json(['created_users' => $createdUsers], 200);
     }
     public function getUserDetails($id){
-        $userDetails = User::where('id',$id)->select('realname','username','phone_number','balance','maxSingleBet','maxMixBet')->get();
+        $userDetails = User::where('id',$id)->select('realname','username','phone_number','balance','maxSingleBet','maxMixBet','status')->get();
         $userSingleCommissions = SingleCommissions::where('user_id',$id)->select('high','low')->get();
         $userAccumulatorCommissions = MixBetCommissions::where('user_id',$id)->select('m2','m3','m4','m5','m6','m7','m8','m9','m10','m11')->get();
         return response()->json(['user_details'=>$userDetails,'single_commissions'=>$userSingleCommissions,'mix_commissions'=>$userAccumulatorCommissions],200);
