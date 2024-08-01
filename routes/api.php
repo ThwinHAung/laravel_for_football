@@ -5,7 +5,6 @@ use App\Http\Controllers\BetController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\MatchesController;
 use App\Http\Controllers\StatusController;
-use App\Http\Controllers\TaxesController;
 use App\Http\Controllers\TransitionController;
 use Illuminate\Support\Facades\Route;
 

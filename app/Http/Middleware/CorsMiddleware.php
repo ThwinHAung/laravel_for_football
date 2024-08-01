@@ -32,6 +32,7 @@ class CorsMiddleware
                 ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
                 ->header('Access-Control-Allow-Credentials', 'true');
         }
+        //s
 
         return $response;
     }
