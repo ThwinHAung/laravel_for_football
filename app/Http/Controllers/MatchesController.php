@@ -8,6 +8,7 @@ use App\Models\Matches;
 use App\Services\PayoutService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use PhpParser\Node\Expr\Match_;
@@ -58,32 +59,37 @@ class MatchesController extends Controller
             ->get();
         return response()->json($pending_matches, 200);
     }
-    public function match_status(Request $request){
-        $validator = Validator::make($request->all(),[
-            "match_id"=>"required",
-            "home_goals"=>"required",
-            "away_goals"=>"required",
+    public function match_status(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            "match_id" => "required",
+            "home_goals" => "required",
+            "away_goals" => "required",
         ]);
-
+    
         if ($validator->fails()) {
+            Log::error('Validation failed', ['errors' => $validator->errors()]);
             return response()->json(['message' => $validator->errors()], 400);
         }
-        
+    
         $match = Matches::find($request->input('match_id'));
         if (!$match) {
+            Log::error('Match not found', ['match_id' => $request->input('match_id')]);
             return response()->json(['message' => 'Match not found'], 404);
         }
-
-        $match->home_goals = $request->input('home_goals');
-        $match->away_goals = $request->input('away_goals');
-
-        $match->status = 'completed';
-        $match->save();
-        Log::info('Match status updated', ['match_id' => $match->id, 'status' => 'completed']);
-
-        MatchFinished::dispatch($match);
+    
+        DB::transaction(function () use ($match, $request) {
+            $match->home_goals = $request->input('home_goals');
+            $match->away_goals = $request->input('away_goals');
+            $match->status = 'completed';
+            $match->save();
+    
+            Log::info('Match status updated', ['match_id' => $match->id, 'home_goals' => $match->home_goals, 'away_goals' => $match->away_goals]);
+    
+            MatchFinished::dispatch($match);
+        });
+    
         return response()->json(['message' => 'Match status updated to completed'], 200);
-
     }
     public function deleteMatch(Request $request)
     {

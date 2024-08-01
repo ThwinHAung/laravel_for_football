@@ -315,7 +315,7 @@ class AuthController extends Controller
             $user->save();
             return response()->json(['message' => 'Password changed successfully'], 200);
         }else{
-            return response()->json(['message' => 'Current Password is successfully'], 400);
+            return response()->json(['message' => 'Current Password is incorrect'], 400);
         }
     }
     public function editBasicInfo(Request $request,$id){

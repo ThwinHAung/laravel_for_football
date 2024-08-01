@@ -9,6 +9,7 @@ use App\Models\MixBetCommissions;
 use App\Models\SingleCommissions;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use PhpParser\Node\Stmt\Switch_;
 
 class PayoutService
@@ -24,14 +25,18 @@ class PayoutService
             $this->calculateSingleBetPayout($singleBet, $match);
         }
 
-        $accumulators = Accumulator::where('match_id', $match->id)->where('status', 'Accepted')->get();
-        foreach($accumulators as $accumulator) {
-            $this->calculateAccumulatorPayout($accumulator, $match);
-
-            if ($this->allMatchesCompleted($accumulator->bet_id)) {
-                $this->processAccumulatorPayout($accumulator->bet_id);
+        DB::transaction(function () use ($match) {
+            $accumulators = Accumulator::where('match_id', $match->id)->where('status', 'Accepted')->lockForUpdate()->get();
+            Log::info('Processing payouts for match', ['match_id' => $match->id]);
+    
+            foreach ($accumulators as $accumulator) {
+                $this->calculateAccumulatorPayout($accumulator, $match);
+    
+                if ($this->allMatchesCompleted($accumulator->bet_id)) {
+                    $this->processAccumulatorPayout($accumulator->bet_id);
+                }
             }
-        }
+        });
 
     }
 
@@ -180,6 +185,11 @@ class PayoutService
         }
         $accumulator->wining_odd = $potentialWiningOdd;
         $accumulator->save();
+        Log::info('Accumulator payout calculated', [
+            'accumulator_id' => $accumulator->id,
+            'wining_odd' => $accumulator->wining_odd,
+            'status' => $accumulator->status,
+        ]);
     }
     
     protected function calculatePotentialWinningOdd(Accumulator $accumulator,Matches $match){
@@ -275,41 +285,46 @@ class PayoutService
     }
     protected function allMatchesCompleted($betId)
     {
-        return Accumulator::where('bet_id', $betId)
+        $count = Accumulator::where('bet_id', $betId)
             ->whereHas('match', function($query) {
                 $query->where('status', '!=', 'completed');
             })
-            ->count() == 0;
+            ->count();
+        Log::info('Checking if all matches are completed', ['bet_id' => $betId, 'incomplete_matches' => $count]);
+        return $count == 0;
     }
 
     protected function processAccumulatorPayout($betId)
     {
-        $accumulatorBets = Accumulator::where('bet_id', $betId)->get();
-        $bet = Bets::find($betId);
-
-        if ($bet) {
-            $totalOdds = $accumulatorBets->reduce(function ($carry, $item) {
-                return $carry * $item->wining_odd;
-            }, 1.0);
+        DB::transaction(function () use ($betId) {
+            $bet = Bets::where('id', $betId)->lockForUpdate()->first();
+            if ($bet) {
+                Log::info('Processing accumulator payout', ['bet_id' => $betId]);
+                $accumulatorBets = Accumulator::where('bet_id', $betId)->lockForUpdate()->get();
     
-            $winningAmount = $bet->amount * $totalOdds;
+                $totalOdds = $accumulatorBets->reduce(function ($carry, $item) {
+                    return $carry * $item->wining_odd;
+                }, 1.0);
     
-            if ($accumulatorBets->where('status', 'Lose')->count() > 0) {
-                $winningAmount = 0;
-                $bet->status = 'Lose';
-            } else {
-                $bet->status = 'Win';
-                $matchCount = $accumulatorBets->count;
-                $taxRate = $this->getAccumulatorTaxRate($matchCount);
-                $taxAmount = $winningAmount * $taxRate;
-                $netWinnings = $winningAmount - $taxAmount;
-                $bet->wining_amount = $netWinnings;
-                $this->updateUserBalance($bet->user_id, $netWinnings);
+                $winningAmount = $bet->amount * $totalOdds;
+    
+                if ($accumulatorBets->where('status', 'Lose')->count() > 0) {
+                    $winningAmount = 0;
+                    $bet->status = 'Lose';
+                } else {
+                    $bet->status = 'Win';
+                    $matchCount = $accumulatorBets->count();
+                    $taxRate = $this->getAccumulatorTaxRate($matchCount);
+                    $taxAmount = $winningAmount * $taxRate;
+                    $netWinnings = $winningAmount - $taxAmount;
+                    $bet->wining_amount = $netWinnings;
+                    $this->updateUserBalance($bet->user_id, $netWinnings);
+                }
+    
+                $bet->save();
+                $this->calculateAccumulatorBetCommission($bet->user_id, $bet->amount, $matchCount);
             }
-    //df
-            $bet->save();
-            $this->calculateAccumulatorBetCommission($bet->user_id,$bet->amount,$matchCount);
-        }
+        });
     }
 
     protected function getTaxRate($leagueName)
@@ -346,6 +361,10 @@ class PayoutService
     {
         $user = User::find($userId);
         $commission = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
+        Log::info('Getting accumulator commission recipient', [
+            'user_id' => $userId,
+            'commission' => $commission,
+        ]);
 
         if ($commission != 0) {
             return $user;
@@ -387,6 +406,11 @@ class PayoutService
 
             $commissionUser->balance += $commissionAmount;
             $commissionUser->save();
+            Log::info('Accumulator bet commission calculated', [
+                'user_id' => $userId,
+                'commission_user_id' => $commissionUser->id,
+                'commission_amount' => $commissionAmount,
+            ]);
 
             return $commissionAmount;
         }
