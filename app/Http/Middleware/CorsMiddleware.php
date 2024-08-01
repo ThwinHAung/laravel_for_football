@@ -17,9 +17,9 @@ class CorsMiddleware
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
-        // https://www.championmaung.com
-        // Add CORS headers to the response
-        $response->header('Access-Control-Allow-Origin', '*')
+        
+        // Set CORS headers
+        $response->header('Access-Control-Allow-Origin', 'https://www.championmaung.com')
             ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
             ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
             ->header('Access-Control-Allow-Credentials', 'true');
@@ -27,7 +27,7 @@ class CorsMiddleware
         // Handle preflight requests (OPTIONS method)
         if ($request->getMethod() == "OPTIONS") {
             return response('', 200)
-                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Origin', 'https://www.championmaung.com')
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
                 ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
                 ->header('Access-Control-Allow-Credentials', 'true');
@@ -35,4 +35,6 @@ class CorsMiddleware
 
         return $response;
     }
+}
+    
 }
