@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://www.championmaung.com'],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
