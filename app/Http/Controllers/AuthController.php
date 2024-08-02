@@ -177,14 +177,14 @@ class AuthController extends Controller
 
 
     
-            if ($creator_role === 'SSSenior') {
-                if ($request->balance > 0) {
-                    Transition::create([
-                        'user_id' => $user->id,
-                        'amount' => $balance,
-                    ]);
-                }
-            }
+            // if ($creator_role === 'SSSenior') {
+            //     if ($request->balance > 0) {
+            //         Transition::create([
+            //             'user_id' => $user->id,
+            //             'amount' => $balance,
+            //         ]);
+            //     }
+            // }
     
             return response()->json(['message' => 'Signup successful', 'user_id' => $user->id], 200);
         } else {
