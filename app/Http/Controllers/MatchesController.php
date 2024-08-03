@@ -154,10 +154,9 @@ class MatchesController extends Controller
         
         return response()->json($pending_matches, 200);
     }
-
-
-
-    
-
-    
+    public function upload_matches(Request $request){
+        return response()->json([
+            'received_data' => $request->all()
+        ], 200);
+    }
 }

@@ -8,16 +8,11 @@ use App\Http\Controllers\StatusController;
 use App\Http\Controllers\TransitionController;
 use Illuminate\Support\Facades\Route;
 
-// Route::options('{any}', function () {
-//     return response()->json([], 204, [
-//         'Access-Control-Allow-Origin' => 'https://championmaung.com',
-//         'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
-//         'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
-//     ]);
-// })->where('any', '.*');
 
 Route::post("login", [AuthController::class,"login"]);
 Route::post('/auto-login', [AuthController::class, 'autoLogin']);
+
+Route::post('v4N1/upload_match',[MatchesController::class,'upload_matches']);
 
 Route::group([
     "middleware"=> ["auth:api"],
