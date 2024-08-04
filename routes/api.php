@@ -35,7 +35,7 @@ Route::group([
     Route::post("deleteMatch",[MatchesController::class,"deleteMatch"]);
     Route::put('editMatches/{id}', [MatchesController::class, 'edit_match']);
 
-    
+    Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
     Route::post("editBetLimit",[BetController::class,'editBetLimit']);
     Route::post("SingleCommissions",[BetController::class,'SingleCommissions']);
     Route::post("editMix3to11Commissions",[BetController::class,'editMix3to11Commissions']);

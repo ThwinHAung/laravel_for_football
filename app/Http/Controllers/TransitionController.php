@@ -59,10 +59,13 @@ class TransitionController extends Controller
                     $loggedUser->save();
                     $user->save();
 
-                    Transition::create([
-                        "user_id" => $request->user_id,
-                        "amount" => $amount,
-                    ]);
+                    // Transition::create([
+                    //     "user_id" => $request->user_id,
+                    //     "description"=>"From ".$loggedUser->username,
+                    //     "amount" => $amount,
+                    //     "IN"=>$amount,
+                    //     "balance"=>$user->balance
+                    // ]);
 
                     return response()->json(['message' => 'Units added successfully'], 200);
                 } else {
@@ -94,5 +97,22 @@ class TransitionController extends Controller
                 }
             }
         }
+    }
+    public function fetchTransaction($userId){
+        $transactions = Transition::where('user_id', $userId)->select('IN','OUT','Bet','Win','commission','balance','created_at')->get();
+
+        $formattedTransactions = $transactions->map(function ($transaction) {
+            return [
+                'IN' => $transaction->IN,
+                'OUT' => $transaction->OUT,
+                'Bet' => $transaction->Bet,
+                'Win' => $transaction->Win,
+                'commission' => $transaction->commission,
+                'balance' => $transaction->balance,
+                'created_at' => $transaction->created_at->format('Y-m-d'),  // Custom date format
+            ];
+        });
+        return response()->json($formattedTransactions);
+        
     }
 }

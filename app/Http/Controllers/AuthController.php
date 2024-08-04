@@ -104,7 +104,6 @@ class AuthController extends Controller
             "Agent" => 6,
             default => null,
         };
-    //sd
         if ($role_id !== null) {
     
             if ($creator_role !== 'SSSenior') {
@@ -174,17 +173,16 @@ class AuthController extends Controller
                     "m10" => $request->input('mixBet10Commission'),
                     "m11" => $request->input('mixBet11Commission'),
                 ]);
-
-
     
-            // if ($creator_role === 'SSSenior') {
-            //     if ($request->balance > 0) {
-            //         Transition::create([
-            //             'user_id' => $user->id,
-            //             'amount' => $balance,
-            //         ]);
-            //     }
-            // }
+            if ($request->balance > 0) {
+                Transition::create([
+                    'user_id' => $user->id,
+                    'description' => 'From ' . $creator->username,
+                    'amount'=>$request->balance,
+                    'IN'=>$request->balance,
+                    'balance'=>$request->balance,
+                ]);
+            }
     
             return response()->json(['message' => 'Signup successful', 'user_id' => $user->id], 200);
         } else {

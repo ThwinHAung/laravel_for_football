@@ -11,6 +11,15 @@ class Transition extends Model
     use HasFactory;
     protected $fillable = [
         'user_id',
+        'description',
+        'type',
         'amount',
+        'IN',
+        'OUT',
+        'Bet',
+        'Win',
+        'commission',
+        'balance'
+
     ];
 }
