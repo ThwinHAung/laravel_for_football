@@ -16,16 +16,16 @@ return new class extends Migration
         Schema::create('mix_bet_commissions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->tinyInteger('m2');
-            $table->tinyInteger('m3');
-            $table->tinyInteger('m4');
-            $table->tinyInteger('m5');
-            $table->tinyInteger('m6');
-            $table->tinyInteger('m7');
-            $table->tinyInteger('m8');
-            $table->tinyInteger('m9');
-            $table->tinyInteger('m10');
-            $table->tinyInteger('m11');
+            $table->decimal('m2',2,1);
+            $table->decimal('m3',3,1);
+            $table->decimal('m4',3,1);
+            $table->decimal('m5',3,1);
+            $table->decimal('m6',3,1);
+            $table->decimal('m7',3,1);
+            $table->decimal('m8',3,1);
+            $table->decimal('m9',3,1);
+            $table->decimal('m10',3,1);
+            $table->decimal('m11',3,1);
             $table->timestamps();
         });
         Schema::table('mix_bet_commissions',function (Blueprint $table){

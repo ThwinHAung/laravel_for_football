@@ -37,18 +37,18 @@ class StatusController extends Controller
     }
     
     
-    public function delete_user(Request $request){
-        $validator = Validator::make($request->all(), [
-            "user_id"=>"required|exists:users,id",
-        ]);
+    // public function delete_user(Request $request){
+    //     $validator = Validator::make($request->all(), [
+    //         "user_id"=>"required|exists:users,id",
+    //     ]);
     
-        if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()], 400);
-        }
-        $user = User::find($request->input('user_id'));
-        $user->delete();
-        return response()->json(['message' => 'User soft deleted successfully']);
-    }
+    //     if ($validator->fails()) {
+    //         return response()->json(['message' => $validator->errors()], 400);
+    //     }
+    //     $user = User::find($request->input('user_id'));
+    //     $user->delete();
+    //     return response()->json(['message' => 'User soft deleted successfully']);
+    // }
     public function getMixBets(Request $request,$username){
         $user = User::where('username', $username)->first();
         if($user){

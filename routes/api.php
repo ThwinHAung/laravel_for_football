@@ -29,7 +29,7 @@ Route::group([
     Route::post("unsuspend_user",[StatusController::class,"unsuspend_user"]);
     Route::post("add_body_match",[BetController::class,"placeSingleBet"]);
     Route::post("add_maung_matches",[BetController::class,"placeAccumulatorBet"]);
-    Route::post("delete_user",[StatusController::class,"delete_user"]);
+    // Route::post("delete_user",[StatusController::class,"delete_user"]);
     Route::post("change_password_user",[AuthController::class,"change_passowrd_user"]);
     Route::post("change_password",[AuthController::class,"change_passowrd"]);
     Route::post("deleteMatch",[MatchesController::class,"deleteMatch"]);

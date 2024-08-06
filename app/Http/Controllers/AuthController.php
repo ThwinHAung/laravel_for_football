@@ -21,8 +21,8 @@ class AuthController extends Controller
             'password.min' => 'Password must be at least 8 characters',
             'password.confirmed'=>'Password must be matched',
             'balance.numeric' => 'Balance must be numeric',
-            'maxSingleBet.numeric' => 'Max Bet Amount must be numeric',
-            'maxMixBet.numeric' => 'Max Bet Amount must be numeric',
+            'maxSingleBet.numeric' => 'Max SingleBet amount must be numeric',
+            'maxMixBet.numeric' => 'Max MixBet amount must be numeric',
             'high.numeric '=> 'Commissions percent must be numeric',
             'low.numeric' => 'Commissions percent must be numeric',
             'mixBet2Commission.numeric' => 'Commissions percent must be numeric',
@@ -35,18 +35,18 @@ class AuthController extends Controller
             'mixBet9Commission.numeric' => 'Commissions percent must be numeric',
             'mixBet10Commission.numeric' => 'Commissions percent must be numeric',
             'mixBet11Commission.numeric' => 'Commissions percent must be numeric',
-            'high.in' => 'High must be 0 or 1',
-            'low.in' => 'Low must be 0 or 1',
-            'mixBet2Commission.in' => 'Mix Bet 2 Commission must be 0 or 7',
-            'mixBet3Commission.in' => 'Mix Bet 3 Commission must be 0 or 15',
-            'mixBet4Commission.in' => 'Mix Bet 4 Commission must be 0 or 15',
-            'mixBet5Commission.in' => 'Mix Bet 5 Commission must be 0 or 15',
-            'mixBet6Commission.in' => 'Mix Bet 6 Commission must be 0 or 15',
-            'mixBet7Commission.in' => 'Mix Bet 7 Commission must be 0 or 15',
-            'mixBet8Commission.in' => 'Mix Bet 8 Commission must be 0 or 15',
-            'mixBet9Commission.in' => 'Mix Bet 9 Commission must be 0 or 15',
-            'mixBet10Commission.in' => 'Mix Bet 10 Commission must be 0 or 15',
-            'mixBet11Commission.in' => 'Mix Bet 11 Commission must be 0 or 15',
+            'high.between' => 'High Commission must be between 0 and 1',
+            'low.between' => 'Low Commission must be between 0 and 1',
+            'mixBet2Commission.between' => 'Mix Bet 2 Commission must be between 0 and 7',
+            'mixBet3Commission.between' => 'Mix Bet 3 Commission must be between 0 and 15',
+            'mixBet4Commission.between' => 'Mix Bet 4 Commission must be between 0 and 15',
+            'mixBet5Commission.between' => 'Mix Bet 5 Commission must be between 0 and 15',
+            'mixBet6Commission.between' => 'Mix Bet 6 Commission must be between 0 and 15',
+            'mixBet7Commission.between' => 'Mix Bet 7 Commission must be between 0 and 15',
+            'mixBet8Commission.between' => 'Mix Bet 8 Commission must be between 0 and 15',
+            'mixBet9Commission.between' => 'Mix Bet 9 Commission must be between 0 and 15',
+            'mixBet10Commission.between' => 'Mix Bet 10 Commission must be between 0 and 15',
+            'mixBet11Commission.between' => 'Mix Bet 11 Commission must be between 0 and 15',
         ];
 
         $validator = Validator::make($request->all(), [
@@ -55,20 +55,20 @@ class AuthController extends Controller
             "password" => "required|confirmed|min:8",
             "phone_number" => "required",
             "balance" => "nullable|numeric",
-            "maxSingleBet" => "required|numeric",
+            "maxSingleBet" => "required|numeric:Min",
             "maxMixBet" => "required|numeric",
-            "high" => "required|numeric|in:0,1",
-            "low" => "required|numeric|in:0,1",
-            "mixBet2Commission" => "required|numeric|in:0,7",
-            "mixBet3Commission" => "required|numeric|in:0,15",
-            "mixBet4Commission" => "required|numeric|in:0,15",
-            "mixBet5Commission" => "required|numeric|in:0,15",
-            "mixBet6Commission" => "required|numeric|in:0,15",
-            "mixBet7Commission" => "required|numeric|in:0,15",
-            "mixBet8Commission" => "required|numeric|in:0,15",
-            "mixBet9Commission" => "required|numeric|in:0,15",
-            "mixBet10Commission" => "required|numeric|in:0,15",
-            "mixBet11Commission" => "required|numeric|in:0,15",
+            "high" => "required|numeric|between:0,1",
+            "low" => "required|numeric|between:0,1",
+            "mixBet2Commission" => "required|numeric|between:0,7",
+            "mixBet3Commission" => "required|numeric|between:0,15",
+            "mixBet4Commission" => "required|numeric|between:0,15",
+            "mixBet5Commission" => "required|numeric|between:0,15",
+            "mixBet6Commission" => "required|numeric|between:0,15",
+            "mixBet7Commission" => "required|numeric|between:0,15",
+            "mixBet8Commission" => "required|numeric|between:0,15",
+            "mixBet9Commission" => "required|numeric|between:0,15",
+            "mixBet10Commission" => "required|numeric|between:0,15",
+            "mixBet11Commission" => "required|numeric|between:0,15",
 
         ],$customMessages);
     
@@ -110,28 +110,36 @@ class AuthController extends Controller
                 $creator_single_commissions = SingleCommissions::where('user_id', $creator_id)->first();
                 $creator_mix_commissions = MixBetCommissions::where('user_id', $creator_id)->first();
     
-                if ($creator_single_commissions->high == 0 && $request->high != 0) {
-                    return response()->json(['message' => 'High single bet commission cannot be passed'], 400);
+                if ($request->high > $creator_single_commissions->high) {
+                    return response()->json([
+                        'message' => "Single bet high commission must be between 0 and {$creator_single_commissions->high}"
+                    ], 400);
                 }
-                if ($creator_single_commissions->low == 0 && $request->low != 0) {
-                    return response()->json(['message' => 'Low single bet commission cannot be passed'], 400);
+                
+                if($request->low > $creator_single_commissions->low){
+                    return response()->json([
+                        'message' => "Single bet low commission must be between 0 and {$creator_single_commissions->low}"
+                    ], 400);
                 }
                 
                 for ($i = 2; $i <= 11; $i++) {
-                    $field = 'm' . $i;
-                    if ($creator_mix_commissions->$field == 0 && $request->input('mixBet' . $i . 'Commission') != 0) {
-                        return response()->json(['message' => "Accumulator bet commission for $i matches cannot be passed"], 400);
+                    $field = 'm' . $i; 
+                    if ($request->input('mixBet' . $i . 'Commission') > $creator_mix_commissions->$field) {
+                        return response()->json(['message' => "Mix bet $i commission must be between 0 and {$creator_mix_commissions->$field}"], 400);
                     }
                 }
+                
                 $maxSingleBetRequest = intval($request->maxSingleBet);
                 $maxMixBetRequest = intval($request->maxMixBet);
                 $maxSingleBetCreator = intval($creator->maxSingleBet);
                 $maxMixBetCreator = intval($creator->maxMixBet);
 
-                if(($maxSingleBetRequest > $maxSingleBetCreator) || ($maxMixBetRequest > $maxMixBetCreator)){
-                    return response()->json(['message'=>"You cannot give max bet amount more than you have"],400);
+                if($maxSingleBetRequest > $maxSingleBetCreator){
+                    return response()->json(['message'=>"Cannot give max Single Bet amount more than limit"],400);
                 }
-                
+                if($maxMixBetRequest > $maxMixBetCreator){
+                    return response()->json(['message'=>"Cannot give max Mix Bet amount more than limit"],400);
+                }
             }
             $balance = $request->balance ?? 0;
 
@@ -221,7 +229,7 @@ class AuthController extends Controller
 
     public function balance(){
         $user_Data = auth()->user();
-        return  response()->json(["message" => "Retrieve balance successfully","balance"=>$user_Data->balance],200);
+        return  response()->json(["balance"=>$user_Data->balance],200);
     }
     public function logout(){
         $token = auth()->user()->token();
@@ -244,7 +252,7 @@ class AuthController extends Controller
     public function change_passowrd_user(Request $request){
         $customMessages = [
             'required' => 'Fill all fields',
-            'new_password.confirmed'=>'Password do not match',
+            'new_password.confirmed'=>'Password confirmation do not match',
             'new_password.min:8'=>'Password must be at least 8 characters'
         ];
         $validator = Validator::make($request->all(), [
@@ -276,16 +284,17 @@ class AuthController extends Controller
             $user->save();
             return response()->json(['message' => 'Password changed successfully'], 200);
         }else{
-            return response()->json(['message' => 'Current Password is successfully'], 400);
+            return response()->json(['message' => 'Incorrect current password'], 400);
         }
     }
     public function change_passowrd(Request $request){
         $customMessages = [
             'required' => 'Fill all fields',
-            'new_password.confirmed'=>'Password do not match',
+            'new_password.confirmed'=>'Password confirmation do not match',
             'new_password.min:8'=>'Password must be at least 8 characters'
         ];
         $validator = Validator::make($request->all(), [
+            "user_id" => "required|exists:users,id",
             "new_password"=>"required|confirmed|min:8"
         ],$customMessages);
     
@@ -306,15 +315,10 @@ class AuthController extends Controller
         
             return response()->json(['message' => $error], 400);
         }
-        $user_id = auth()->user()->id;
-        $user = User::find($user_id);
-        if(Hash::check($request->current_password,$user->password)){
-            $user->password = Hash::make($request->new_password);
-            $user->save();
-            return response()->json(['message' => 'Password changed successfully'], 200);
-        }else{
-            return response()->json(['message' => 'Current Password is incorrect'], 400);
-        }
+        $user = User::find($request->input('user_id'));
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+        return response()->json(['message' => 'Password changed successfully'], 200);
     }
     public function editBasicInfo(Request $request,$id){
         $customMessages = [

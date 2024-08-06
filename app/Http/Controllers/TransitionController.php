@@ -15,11 +15,13 @@ class TransitionController extends Controller
     {
         $customMessages = [
             'required'=>'Fill all fields',
-            'amount.numeric'=>'Amount must be Numeric',
+            'amount.numeric'=>'Transcation amount must be numeric',
+            'amount.min'=>'Invalid transaction amount!'
+
         ];
         $validator = Validator::make($request->all(), [
             "user_id" => "required|exists:users,id",
-            "amount" => "required|numeric|min:0",
+            "amount" => "required|numeric|min:1000",
             "action" => "required|in:add,remove"
         ],$customMessages);
         if ($validator->fails()) {
@@ -51,6 +53,13 @@ class TransitionController extends Controller
                 $user->balance += $amount;
                 $user->save();
 
+                Transition::create([
+                    "user_id" => $request->user_id,
+                    "description"=>"From ".$loggedUser->username,
+                    "amount" => $amount,
+                    "IN"=>$amount,
+                    "balance"=>$user->balance
+                ]);
                 return response()->json(['message' => 'Units added successfully'], 200);
             } else {
                 if ($loggedUser->balance >= $amount) {
@@ -59,25 +68,33 @@ class TransitionController extends Controller
                     $loggedUser->save();
                     $user->save();
 
-                    // Transition::create([
-                    //     "user_id" => $request->user_id,
-                    //     "description"=>"From ".$loggedUser->username,
-                    //     "amount" => $amount,
-                    //     "IN"=>$amount,
-                    //     "balance"=>$user->balance
-                    // ]);
-
+                    Transition::create([
+                        "user_id" => $request->user_id,
+                        "description"=>"From ".$loggedUser->username,
+                        "amount" => $amount,
+                        "IN"=>$amount,
+                        "balance"=>$user->balance
+                    ]);
+                    
                     return response()->json(['message' => 'Units added successfully'], 200);
                 } else {
                     return response()->json(['message' => 'Insufficient balance'], 400);
-                }
+                }   
             }
+
         } elseif ($request->action === 'remove') {
             if ($loggedUserRole == 'SSSenior') {
                 if ($user->balance >= $amount) {
                     $user->balance -= $amount;
                     $user->save();
 
+                    Transition::create([
+                        "user_id" => $request->user_id,
+                        "description"=>"From ".$loggedUser->username,
+                        "amount" => $amount,
+                        "OUT"=>$amount,
+                        "balance"=>$user->balance
+                    ]);
 
                     return response()->json(['message' => 'Units reduced successfully'], 200);
                 } else {
@@ -90,7 +107,13 @@ class TransitionController extends Controller
                     $user->save();
                     $loggedUser->save();
 
-
+                    Transition::create([
+                        "user_id" => $request->user_id,
+                        "description"=>"From ".$loggedUser->username,
+                        "amount" => $amount,
+                        "OUT"=>$amount,
+                        "balance"=>$user->balance
+                    ]);
                     return response()->json(['message' => 'Units reduced successfully'], 200);
                 } else {
                     return response()->json(['message' => 'Insufficient balance'], 400);

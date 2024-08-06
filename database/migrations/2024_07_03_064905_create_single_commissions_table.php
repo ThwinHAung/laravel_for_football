@@ -16,8 +16,8 @@ return new class extends Migration
         Schema::create('single_commissions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->tinyInteger('high');
-            $table->tinyInteger('low');
+            $table->decimal('high',2,1);
+            $table->decimal('low',2,1);
             $table->timestamps();
         });
         Schema::table('single_commissions',function (Blueprint $table){
