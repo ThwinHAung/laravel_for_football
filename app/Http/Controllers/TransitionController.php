@@ -72,7 +72,7 @@ class TransitionController extends Controller
                         "user_id" => $request->user_id,
                         "description"=>"From ".$loggedUser->username,
                         "amount" => $amount,
-                        "IN"=>$amount,
+                        "OUT"=>$amount,
                         "balance"=>$user->balance
                     ]);
                     
@@ -91,6 +91,7 @@ class TransitionController extends Controller
                     Transition::create([
                         "user_id" => $request->user_id,
                         "description"=>"From ".$loggedUser->username,
+                        "type"=>'OUT',
                         "amount" => $amount,
                         "OUT"=>$amount,
                         "balance"=>$user->balance
@@ -110,6 +111,7 @@ class TransitionController extends Controller
                     Transition::create([
                         "user_id" => $request->user_id,
                         "description"=>"From ".$loggedUser->username,
+                        "type"=>'OUT',
                         "amount" => $amount,
                         "OUT"=>$amount,
                         "balance"=>$user->balance
@@ -122,20 +124,42 @@ class TransitionController extends Controller
         }
     }
     public function fetchTransaction($userId){
-        $transactions = Transition::where('user_id', $userId)->select('IN','OUT','Bet','Win','commission','balance','created_at')->get();
-
-        $formattedTransactions = $transactions->map(function ($transaction) {
+        $transactions = Transition::where('user_id', $userId)
+            ->select('IN', 'OUT', 'Bet', 'Win', 'commission', 'balance', 'created_at')
+            ->get()
+            ->groupBy(function($transaction) {
+                return $transaction->created_at->format('Y-m-d');
+            });
+    
+        $combinedTransactions = $transactions->map(function ($dayTransactions, $date) {
             return [
-                'IN' => $transaction->IN,
-                'OUT' => $transaction->OUT,
-                'Bet' => $transaction->Bet,
-                'Win' => $transaction->Win,
-                'commission' => $transaction->commission,
-                'balance' => $transaction->balance,
-                'created_at' => $transaction->created_at->format('Y-m-d'),  // Custom date format
+                'date' => $date,
+                'IN' => $dayTransactions->sum('IN'),
+                'OUT' => $dayTransactions->sum('OUT'),
+                'Bet' => $dayTransactions->sum('Bet'),
+                'Win' => $dayTransactions->sum('Win'),
+                'commission' => $dayTransactions->sum('commission'),
+                'balance' => $dayTransactions->last()->balance,  // assuming the last entry of the day holds the correct balance
             ];
         });
+    
+        return response()->json($combinedTransactions->values());
+    }
+    public function fetchTransactionsForDate($userId, $date) {
+        $transactions = Transition::where('user_id', $userId)
+            ->whereDate('created_at', $date)
+            ->get();
+    
+        $formattedTransactions = $transactions->map(function ($transaction) {
+            return [
+                'date' => $transaction->created_at->format('Y-m-d H:i'),
+                'description' => $transaction->description,
+                'type' => $transaction->type,
+                'amount' => $transaction->amount,
+                'balance' => $transaction->balance,
+            ];
+        });
+    
         return response()->json($formattedTransactions);
-        
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Bets;
 use App\Models\Matches;
 use App\Models\MixBetCommissions;
 use App\Models\SingleCommissions;
+use App\Models\Transition;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -28,7 +29,7 @@ class BetController extends Controller
         if ($User->balance < $request->amount) {
             return response()->json(['message' => 'Insufficient balance'], 400);
         }else{
-            Bets::create([
+            $bet = Bets::create([
                 'user_id'=>$user_id,
                 'match_id'=>$request->match_id,
                 'bet_type'=>'single',
@@ -37,6 +38,14 @@ class BetController extends Controller
             ]);
             $User->balance -= $request->amount;
             $User->save();
+            Transition::create([
+                "user_id" => $request->user_id,
+                "description"=>"Bet ID: ".$bet->id,
+                "type"=>'OUT',
+                "amount" => $request->amount,
+                "Bet"=>$request->amount,
+                "balance"=>$User->balance
+            ]);
             return response()->json(['message' => 'Single bet placed successfully'], 200);
         }
         
@@ -71,6 +80,14 @@ class BetController extends Controller
             }
             $User->balance -= $request->amount;
             $User->save();
+            Transition::create([
+                "user_id" => $request->user_id,
+                "description"=>"Bet ID: ".$bet->id,
+                "type"=>'OUT',
+                "amount" => $request->amount,
+                "Bet"=>$request->amount,
+                "balance"=>$User->balance
+            ]);
         }
 
         return response()->json(['message' => 'Accumulator bet placed successfully'], 200);

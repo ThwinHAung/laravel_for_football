@@ -57,8 +57,8 @@ class AuthController extends Controller
             "balance" => "nullable|numeric",
             "maxSingleBet" => "required|numeric:Min",
             "maxMixBet" => "required|numeric",
-            "high" => "required|numeric|between:0,1",
-            "low" => "required|numeric|between:0,1",
+            "high" => "required|numeric|between:0,2",
+            "low" => "required|numeric|between:0,2",
             "mixBet2Commission" => "required|numeric|between:0,7",
             "mixBet3Commission" => "required|numeric|between:0,15",
             "mixBet4Commission" => "required|numeric|between:0,15",
@@ -215,7 +215,6 @@ class AuthController extends Controller
             if($user->status === 'suspended') {
                 return response()->json(["message"=> "Your account is suspended. Contact your agent!"], 403);
             }
-    
             if(Hash::check($request->password, $user->password)){
                 $token = $user->createToken("usertoken")->accessToken;
                 return response()->json(["message"=> "Login Successful","token" => $token,"role"=>$user->role->name,"username"=>$user->username],200);
