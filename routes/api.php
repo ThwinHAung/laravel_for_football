@@ -35,6 +35,9 @@ Route::group([
     Route::post("deleteMatch",[MatchesController::class,"deleteMatch"]);
     Route::put('editMatches/{id}', [MatchesController::class, 'edit_match']);
 
+    Route::get("getmemberCount", [StatusController::class,"member_count"]);
+    Route::get("getdownlineBalance", [StatusController::class,"down_line"]);
+    Route::get("getoutstandingBalance", [StatusController::class,"outstanding_balance"]);
     Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
     Route::get("getTransactionsForDate/{id}/{date}",[TransitionController::class,'fetchTransactionsForDate']);
     Route::post("editBetLimit",[BetController::class,'editBetLimit']);

@@ -335,19 +335,19 @@ class BetController extends Controller
 
     }
 
-    public function SingleCommissions(Request $request){
+    public function SingleCommissions(Request $request) {
         $customMessages = [
-            'required'=>'Fill all fields',
-            'commissions.in'=>'Single Bet Commission must be 0 or 1',
-            'commissions.numeric'=>'SingleBetCommission must be Numeric',
-            'high_commissions.in'=>'Single Bet Commission must be 0 or 1',
-            'high_commissions.numeric'=>'SingleBetCommission must be Numeric'
+            'required' => 'Fill all fields',
+            'commissions.between' => 'Low Commission must be between 0 and 2',
+            'commissions.numeric' => 'SingleBetCommission must be Numeric',
+            'high_commissions.between' => 'High Commission must be between 0 and 2',
+            'high_commissions.numeric' => 'SingleBetCommission must be Numeric'
         ];
     
         $validator = Validator::make($request->all(), [
             "user_id" => "required|exists:users,id",
-            "commissions" => "required|numeric|in:0,1",
-            "high_commissions" => "required|numeric|in:0,1",
+            "commissions" => "required|numeric|between:0,2",
+            "high_commissions" => "required|numeric|between:0,2",
         ], $customMessages);
     
         if ($validator->fails()) {
@@ -372,7 +372,7 @@ class BetController extends Controller
         if (!$child) {
             return response()->json(['message' => 'Child record not found'], 400);
         }
-        
+    
         $authUser = auth()->user();
         $auth_role = $authUser->role->name;
     
@@ -380,75 +380,34 @@ class BetController extends Controller
         $highCommissionResponse = null;
     
         // Normal Commissions logic
+        $parent = SingleCommissions::where('user_id', $authUser->id)->first();
         if ($auth_role != 'SSSenior') {
-            $parent = SingleCommissions::where('user_id', $authUser->id)->first();
-            if ($request->commissions != 0) {
-                if($parent->low != 0){
-                    $child->low = $request->input('commissions');
-                    $child->save();
-                    $normalCommissionResponse = ['message' => 'Normal commissions transferred', 'status' => 200];
-                }else{
-                    $normalCommissionResponse = ['message' => 'Normal commissions cannot transferred', 'status' => 400];
-                }
-            } else {
-                if ($child->low != 0) {
-                    $child->low = 0;
-                    $child->save();
-                    $normalCommissionResponse = ['message' => 'Normal commissions reduced', 'status' => 200];
-                } else {
-                    $normalCommissionResponse = ['message' => 'Normal commissions cannot be reduced', 'status' => 400];
-                }
-            }
-        } else {
-            if ($request->commissions != 0) {
+            if ($request->commissions <= $parent->low) {
                 $child->low = $request->input('commissions');
                 $child->save();
                 $normalCommissionResponse = ['message' => 'Normal commissions transferred', 'status' => 200];
             } else {
-                if ($child->low != 0) {
-                    $child->low = 0;
-                    $child->save();
-                    $normalCommissionResponse = ['message' => 'Normal commissions reduced', 'status' => 200];
-                } else {
-                    $normalCommissionResponse = ['message' => 'Normal commissions cannot be reduced', 'status' => 400];
-                }
+                $normalCommissionResponse = ['message' => 'Normal commissions cannot be transferred', 'status' => 400];
             }
+        } else {
+            $child->low = $request->input('commissions');
+            $child->save();
+            $normalCommissionResponse = ['message' => 'Normal commissions transferred', 'status' => 200];
         }
     
         // High Commissions logic
         if ($auth_role != 'SSSenior') {
-            $parent = SingleCommissions::where('user_id', $authUser->id)->first();
-            if ($request->high_commissions != 0) {
-                if ($parent->high != 0) {
-                    $child->high = $request->input('high_commissions');
-                    $child->save();
-                    $highCommissionResponse = ['message' => 'High commissions transferred', 'status' => 200];
-                } else {
-                    $highCommissionResponse = ['message' => 'High commissions cannot be transferred', 'status' => 400];
-                }
-            } else {
-                if ($child->high != 0) {
-                    $child->high = 0;
-                    $child->save();
-                    $highCommissionResponse = ['message' => 'High commissions reduced', 'status' => 200];
-                } else {
-                    $highCommissionResponse = ['message' => 'High commissions cannot be reduced', 'status' => 400];
-                }
-            }
-        } else {
-            if ($request->high_commissions != 0) {
+            if ($request->high_commissions <= $parent->high) {
                 $child->high = $request->input('high_commissions');
                 $child->save();
                 $highCommissionResponse = ['message' => 'High commissions transferred', 'status' => 200];
             } else {
-                if ($child->high != 0) {
-                    $child->high = 0;
-                    $child->save();
-                    $highCommissionResponse = ['message' => 'High commissions reduced', 'status' => 200];
-                } else {
-                    $highCommissionResponse = ['message' => 'High commissions cannot be reduced', 'status' => 400];
-                }
+                $highCommissionResponse = ['message' => 'High commissions cannot be transferred', 'status' => 400];
             }
+        } else {
+            $child->high = $request->input('high_commissions');
+            $child->save();
+            $highCommissionResponse = ['message' => 'High commissions transferred', 'status' => 200];
         }
     
         return response()->json([
@@ -457,22 +416,22 @@ class BetController extends Controller
         ], 200);
     }
     
-    
-
-    public function editMix3to11Commissions(Request $request){
+    public function editMix3to11Commissions(Request $request) {
         $customMessages = [
-            'required'=>'Fill all fields',
-            'commission.in'=>'Mix Bet Commission must be 0 or 15',
-            'commission.numeric'=>'MixBetCommissions must be Numeric'
+            'required' => 'Fill all fields',
+            'commission.between' => 'Mix Bet Commission must be between 0 and 15',
+            'commission.numeric' => 'MixBetCommissions must be Numeric'
         ];
+    
         $validator = Validator::make($request->all(), [
             "user_id" => "required|exists:users,id",
             "match_type" => "required|in:m3,m4,m5,m6,m7,m8,m9,m10,m11",
-            "commission" => "required|numeric|in:0,15",
-        ],$customMessages);
+            "commission" => "required|numeric|between:0,15",
+        ], $customMessages);
+    
         if ($validator->fails()) {
             $errors = $validator->errors()->all();
-        
+    
             $hasRequiredError = false;
             foreach ($errors as $error) {
                 if ($error === 'Fill all fields') {
@@ -480,68 +439,55 @@ class BetController extends Controller
                     break;
                 }
             }
-        
+    
             if ($hasRequiredError) {
                 return response()->json(['message' => 'Fill all fields'], 400);
             }
-        
-            return response()->json(['message' => $error], 400);
+    
+            return response()->json(['message' => $errors[0]], 400);
         }
-        $child = MixBetCommissions::where('user_id',$request->input('user_id'))->first();
+    
+        $child = MixBetCommissions::where('user_id', $request->input('user_id'))->first();
         $matchType = $request->input('match_type');
         $authUser = Auth::user();
-        $auth_role = $authUser->role;
-        
-
-        if($auth_role != 'SSSenior'){
-            $parent = MixBetCommissions::where('user_id',$authUser->id)->first();
-            if($request->commission != 0){
-                if($parent->$matchType != 0){
-                    $child->$matchType = $request->input('commission');              
-                    $child->save();
-                    return response()->json(['message' => 'Commissions transferred'], 200);
-                }else{
-                    return response()->json(['message' => 'Commissions cannot transferred'], 400);
-                }
-            }else{
-                if($child->$matchType != 0){
-                    $child->$matchType = 0;
-                    $child->save();
-                    return response()->json(['message' => 'Commissions reduced'], 200);
-                }else{
-                    return response()->json(['message' => 'Commissions cannot reduced'], 400);
-                }
+        $auth_role = $authUser->role->name;
+    
+        if (!$child) {
+            return response()->json(['message' => 'Child record not found'], 400);
+        }
+    
+        if ($auth_role != 'SSSenior') {
+            $parent = MixBetCommissions::where('user_id', $authUser->id)->first();
+            if ($request->commission <= $parent->$matchType) {
+                $child->$matchType = $request->input('commission');
+                $child->save();
+                return response()->json(['message' => 'Commissions transferred'], 200);
+            } else {
+                return response()->json(['message' => 'Commissions cannot be transferred'], 400);
             }
-        }else{
-            if($request->commission != 0){
-                    $child->$matchType = $request->input('commission');
-                    $child->save();
-                    return response()->json(['message' => 'Commissions transferred'], 200);
-            }else{
-                if($child->$matchType != 0){
-                    $child->$matchType = 0;
-                    $child->save();
-                    return response()->json(['message' => 'Commissions reduced'], 200);
-                }else{
-                    return response()->json(['message' => 'Commissions cannot reduced'], 400);
-                }
-            }  
+        } else {
+            $child->$matchType = $request->input('commission');
+            $child->save();
+            return response()->json(['message' => 'Commissions transferred'], 200);
         }
     }
-    public function editMix2Commissions(Request $request){
+    
+    public function editMix2Commissions(Request $request) {
         $customMessages = [
-            'required'=>'Fill all fields',
-            'commission.in'=>'Mix Bet Commission must be 0 or 7',
-            'commission.numeric'=>'MixBetCommission must be Numeric'
+            'required' => 'Fill all fields',
+            'commission.between' => 'Mix Bet Commission must be between 0 and 7',
+            'commission.numeric' => 'MixBetCommission must be Numeric'
         ];
+    
         $validator = Validator::make($request->all(), [
             "user_id" => "required|exists:users,id",
             "match_type" => "required|in:m2",
-            "commission" => "required|numeric|in:0,7",
-        ],$customMessages);
+            "commission" => "required|numeric|between:0,7",
+        ], $customMessages);
+    
         if ($validator->fails()) {
             $errors = $validator->errors()->all();
-        
+    
             $hasRequiredError = false;
             foreach ($errors as $error) {
                 if ($error === 'Fill all fields') {
@@ -549,54 +495,37 @@ class BetController extends Controller
                     break;
                 }
             }
-        
+    
             if ($hasRequiredError) {
                 return response()->json(['message' => 'Fill all fields'], 400);
             }
-        
-            return response()->json(['message' => $error], 400);
+    
+            return response()->json(['message' => $errors[0]], 400);
         }
-        $child = MixBetCommissions::where('user_id',$request->input('user_id'))->first();
+    
+        $child = MixBetCommissions::where('user_id', $request->input('user_id'))->first();
         $matchType = $request->input('match_type');
         $authUser = Auth::user();
-        $auth_role = $authUser->role;
-
-
-        if($auth_role != 'SSSenior'){
-            $parent = MixBetCommissions::where('user_id',$authUser->id)->first();
-            if($request->commission != 0){
-                if($parent->$matchType != 0){
-                    $child->$matchType = $request->input('commission');                
-                    $child->save();
-                    return response()->json(['message' => 'Commissions transferred'], 200);
-                }else{
-                    return response()->json(['message' => 'Commissions cannot transferred'], 400);
-                }
-
-            }else{
-                if($child->$matchType != 0){
-                    $child->$matchType = 0;
-                    $child->save();
-                    return response()->json(['message' => 'Commissions reduced'], 200);
-                }else{
-                    return response()->json(['message' => 'Commissions cannot reduced'], 400);
-                }
-            }
-        }else{
-            if($request->commission != 0){
-                    $child->$matchType = $request->input('commission');
-                    $child->save();
-                    return response()->json(['message' => 'Commissions transferred'], 200);
-            }else{
-                if($child->$matchType != 0){
-                    $child->$matchType = 0;
-                    $child->save();
-                    return response()->json(['message' => 'Commissions reduced'], 200);
-                }else{
-                    return response()->json(['message' => 'Commissions cannot reduced'], 400);
-                }
-            }  
+        $auth_role = $authUser->role->name;
+    
+        if (!$child) {
+            return response()->json(['message' => 'Child record not found'], 400);
         }
-    }
+    
+        if ($auth_role != 'SSSenior') {
+            $parent = MixBetCommissions::where('user_id', $authUser->id)->first();
+            if ($request->commission <= $parent->$matchType) {
+                $child->$matchType = $request->input('commission');
+                $child->save();
+                return response()->json(['message' => 'Commissions transferred'], 200);
+            } else {
+                return response()->json(['message' => 'Commissions cannot be transferred'], 400);
+            }
+        } else {
+            $child->$matchType = $request->input('commission');
+            $child->save();
+            return response()->json(['message' => 'Commissions transferred'], 200);
+        }
+    }    
     
 }  

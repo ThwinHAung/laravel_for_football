@@ -123,8 +123,12 @@ class TransitionController extends Controller
             }
         }
     }
-    public function fetchTransaction($userId){
+    public function fetchTransaction(Request $request, $userId) {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+    
         $transactions = Transition::where('user_id', $userId)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->select('IN', 'OUT', 'Bet', 'Win', 'commission', 'balance', 'created_at')
             ->get()
             ->groupBy(function($transaction) {
