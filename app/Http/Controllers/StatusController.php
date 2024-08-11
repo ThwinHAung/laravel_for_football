@@ -68,6 +68,11 @@ class StatusController extends Controller
         $userCount = User::where('created_by', $userId)->count();
         return response()->json(["userCount"=>$userCount],200);
     }
+    public function member_count_ss() {
+        $userId = auth()->user()->id;
+        $userCount = User::where('created_by', $userId)->count();
+        return response()->json(["userCount"=>$userCount],200);
+    }
 
     public function down_line() {
         $userId = auth()->user()->id;
@@ -80,12 +85,16 @@ class StatusController extends Controller
         $userId = auth()->user()->id;
         $today = Carbon::today()->toDateString();
     
-        $totalBetAmountToday = DB::table('transitions')
-                                 ->join('users', 'transitions.user_id', '=', 'users.id')
+        $totalBetAmountToday = DB::table('bets')
+                                 ->join('users', 'bets.user_id', '=', 'users.id')
                                  ->where('users.created_by', $userId)
-                                 ->whereDate('transitions.created_at', $today)
-                                 ->sum('transitions.Bet');
-        return response()->json(["outstandingBalance"=>$totalBetAmountToday],200);
+                                 ->where('bets.status', 'Accepted')
+                                 ->whereDate('bets.created_at', $today)
+                                 ->sum('bets.amount');
+    
+        return response()->json(["outstandingBalance" => $totalBetAmountToday], 200);
     }
+    
+    
 
 }

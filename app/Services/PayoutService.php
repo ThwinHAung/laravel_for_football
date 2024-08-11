@@ -7,6 +7,7 @@ use App\Models\Matches;
 use App\Models\Bets;
 use App\Models\MixBetCommissions;
 use App\Models\SingleCommissions;
+use App\Models\Transition;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -58,17 +59,35 @@ class PayoutService
             $bet->status = 'Win';
             $bet->wining_amount = $netWinnings + $bet->amount; 
             $this->updateUserBalance($bet->user_id, $netWinnings + $bet->amount);
+            $bet->save();
+            $user = User::find($bet->user_id);
+            Transition::create([
+                'user_id' => $bet->user_id,
+                'description' => 'Win (Bet ID: ' . $bet->id . ')',
+                'type' => 'IN',
+                'amount'=>$bet->wining_amount,
+                'Win'=>$bet->wining_amount,
+                'balance'=>$user->balance
+            ]);
         } else if($potentialWinningAmount > 0){
             $bet->status = 'Win';
             $bet->wining_amount = $potentialWinningAmount;
             $this->updateUserBalance($bet->user_id, $bet->wining_amount);
+            $bet->save();
+            $user = User::find($bet->user_id);
+            Transition::create([
+                'user_id' => $bet->user_id,
+                'description' => 'Win (Bet ID: ' . $bet->id . ')',
+                'type' => 'IN',
+                'amount'=>$bet->wining_amount,
+                'Win'=>$bet->wining_amount,
+                'balance'=>$user->balance
+            ]);
         }else{
             $bet->status = 'Lose';
+            $bet->save();
         }
-
-        $bet->save();
-
-        $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $leagueName);
+        // $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $leagueName);
     }
 
     protected function calculatePotentialWinningAmount(Bets $bet,Matches $match){
@@ -311,6 +330,7 @@ class PayoutService
                 if ($accumulatorBets->where('status', 'Lose')->count() > 0) {
                     $winningAmount = 0;
                     $bet->status = 'Lose';
+                    $bet->save();
                 } else {
                     $bet->status = 'Win';
                     $matchCount = $accumulatorBets->count();
@@ -318,11 +338,20 @@ class PayoutService
                     $taxAmount = $winningAmount * $taxRate;
                     $netWinnings = $winningAmount - $taxAmount;
                     $bet->wining_amount = $netWinnings;
+                    $bet->save();
                     $this->updateUserBalance($bet->user_id, $netWinnings);
+                    $user = User::find($bet->user_id);
+                    Transition::create([
+                        'user_id' => $bet->user_id,
+                        'description' => 'Win (Bet ID: ' . $bet->id . ')',
+                        'type' => 'IN',
+                        'amount'=>$bet->wining_amount,
+                        'Win'=>$bet->wining_amount,
+                        'balance'=>$user->balance
+                    ]);
                 }
     
-                $bet->save();
-                $this->calculateAccumulatorBetCommission($bet->user_id, $bet->amount, $matchCount);
+                // $this->calculateAccumulatorBetCommission($bet->user_id, $bet->amount, $matchCount);
             }
         });
     }
@@ -342,80 +371,92 @@ class PayoutService
             return 0.0; 
         }
     }
-    private function getSingleCommissionRecipient($userId, $commissionType)
-    {
-        $user = User::find($userId);
-        $commission = SingleCommissions::where('user_id', $userId)->value($commissionType);
+//  // Function to get the single commission recipient and distribute the remaining commission up the hierarchy
+// private function getSingleCommissionRecipient($userId, $commissionType, $remainingCommission)
+// {
+//     $user = User::find($userId);
+//     $userCommissionRate = SingleCommissions::where('user_id', $userId)->value($commissionType);
 
-        if ($commission == 1) {
-            return $user;
-        }
-        if ($user->created_by !== null) {
-            return $this->getSingleCommissionRecipient($user->created_by, $commissionType);
-        }
+//     if ($userCommissionRate >= $remainingCommission) {
+//         return ['user' => $user, 'commission' => $remainingCommission];
+//     }
 
-        return null;
-    }
+//     // Allocate the user's commission and reduce the remaining commission
+//     $allocatedCommission = $userCommissionRate;
+//     $remainingCommission -= $allocatedCommission;
 
-    private function getAccumulatorCommissionRecipient($userId, $matchCount)
-    {
-        $user = User::find($userId);
-        $commission = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
-        Log::info('Getting accumulator commission recipient', [
-            'user_id' => $userId,
-            'commission' => $commission,
-        ]);
+//     if ($user->created_by !== null && $remainingCommission > 0) {
+//         // Pass the remaining commission up the hierarchy
+//         return $this->getSingleCommissionRecipient($user->created_by, $commissionType, $remainingCommission);
+//     }
 
-        if ($commission != 0) {
-            return $user;
-        }
-        if ($user->created_by !== null) {
-            return $this->getAccumulatorCommissionRecipient($user->created_by, $matchCount);
-        }
+//     return ['user' => $user, 'commission' => $allocatedCommission];
+// }
 
-        return null;
-    }
+// // Function to get the accumulator commission recipient and distribute the remaining commission up the hierarchy
+// private function getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission)
+// {
+//     $user = User::find($userId);
+//     $userCommissionRate = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
 
-    public function calculateSingleBetCommission($userId, $betAmount, $league)
-    {
-        $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
-        $isHigh = in_array($league, $topLeagues);
+//     if ($userCommissionRate >= $remainingCommission) {
+//         return ['user' => $user, 'commission' => $remainingCommission];
+//     }
 
-        $commissionType = $isHigh ? 'high' : 'low';
-        $commissionUser = $this->getSingleCommissionRecipient($userId, $commissionType);
+//     // Allocate the user's commission and reduce the remaining commission
+//     $allocatedCommission = $userCommissionRate;
+//     $remainingCommission -= $allocatedCommission;
 
-        if ($commissionUser) {
-            $commissionAmount = $betAmount * 0.01;
+//     if ($user->created_by !== null && $remainingCommission > 0) {
+//         // Pass the remaining commission up the hierarchy
+//         return $this->getAccumulatorCommissionRecipient($user->created_by, $matchCount, $remainingCommission);
+//     }
 
-            $commissionUser->balance += $commissionAmount;
-            $commissionUser->save();
+//     return ['user' => $user, 'commission' => $allocatedCommission];
+// }
 
-            return $commissionAmount;
-        }
-        return 0;
-    }
+// // Function to calculate the single bet commission
+// public function calculateSingleBetCommission($userId, $betAmount, $league)
+// {
+//     $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
+//     $isHigh = in_array($league, $topLeagues);
 
-    public function calculateAccumulatorBetCommission($userId, $betAmount, $matchCount)
-    {
-        $commissionRate = ($matchCount == 2) ? 0.07 : 0.15;
+//     $commissionType = $isHigh ? 'high' : 'low';
+//     $remainingCommission = 0.02 * $betAmount;  // Constant rate is 2%
 
-        $commissionUser = $this->getAccumulatorCommissionRecipient($userId, $matchCount);
+//     $commissionData = $this->getSingleCommissionRecipient($userId, $commissionType, $remainingCommission);
 
-        if ($commissionUser) {
-            $commissionAmount = $betAmount * $commissionRate;
+//     if ($commissionData['user']) {
+//         $commissionData['user']->balance += $commissionData['commission'];
+//         $commissionData['user']->save();
 
-            $commissionUser->balance += $commissionAmount;
-            $commissionUser->save();
-            Log::info('Accumulator bet commission calculated', [
-                'user_id' => $userId,
-                'commission_user_id' => $commissionUser->id,
-                'commission_amount' => $commissionAmount,
-            ]);
+//         return $commissionData['commission'];
+//     }
 
-            return $commissionAmount;
-        }
+//     return 0;
+// }
 
-        return 0;
-    }
+// Function to calculate the accumulator bet commission
+// public function calculateAccumulatorBetCommission($userId, $betAmount, $matchCount)
+// {
+//     $commissionRate = ($matchCount == 2) ? 0.07 : 0.15;
+//     $remainingCommission = $commissionRate * $betAmount;
 
+//     $commissionData = $this->getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission);
+
+//     if ($commissionData['user']) {
+//         $commissionData['user']->balance += $commissionData['commission'];
+//         $commissionData['user']->save();
+
+//         Log::info('Accumulator bet commission calculated', [
+//             'user_id' => $userId,
+//             'commission_user_id' => $commissionData['user']->id,
+//             'commission_amount' => $commissionData['commission'],
+//         ]);
+
+//         return $commissionData['commission'];
+//     }
+
+//     return 0;
+// }
 }

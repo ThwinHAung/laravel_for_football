@@ -39,7 +39,7 @@ class BetController extends Controller
             $User->balance -= $request->amount;
             $User->save();
             Transition::create([
-                "user_id" => $request->user_id,
+                "user_id" => $user_id,
                 "description"=>"Bet ID: ".$bet->id,
                 "type"=>'OUT',
                 "amount" => $request->amount,
@@ -81,7 +81,7 @@ class BetController extends Controller
             $User->balance -= $request->amount;
             $User->save();
             Transition::create([
-                "user_id" => $request->user_id,
+                "user_id" => $user_id,
                 "description"=>"Bet ID: ".$bet->id,
                 "type"=>'OUT',
                 "amount" => $request->amount,

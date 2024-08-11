@@ -23,7 +23,7 @@ class AuthController extends Controller
             'balance.numeric' => 'Balance must be numeric',
             'maxSingleBet.numeric' => 'Max SingleBet amount must be numeric',
             'maxMixBet.numeric' => 'Max MixBet amount must be numeric',
-            'high.numeric '=> 'Commissions percent must be numeric',
+            'high.numeric' => 'Commissions percent must be numeric',
             'low.numeric' => 'Commissions percent must be numeric',
             'mixBet2Commission.numeric' => 'Commissions percent must be numeric',
             'mixBet3Commission.numeric' => 'Commissions percent must be numeric',
@@ -48,33 +48,32 @@ class AuthController extends Controller
             'mixBet10Commission.between' => 'Mix Bet 10 Commission must be between 0 and 15',
             'mixBet11Commission.between' => 'Mix Bet 11 Commission must be between 0 and 15',
         ];
-
+    
         $validator = Validator::make($request->all(), [
             "realname" => "required|string",
             "username" => "required|string|unique:users",
             "password" => "required|confirmed|min:8",
             "phone_number" => "required",
             "balance" => "nullable|numeric",
-            "maxSingleBet" => "required|numeric:Min",
+            "maxSingleBet" => "required|numeric",
             "maxMixBet" => "required|numeric",
-            "high" => "required|numeric|between:0,2",
-            "low" => "required|numeric|between:0,2",
-            "mixBet2Commission" => "required|numeric|between:0,7",
-            "mixBet3Commission" => "required|numeric|between:0,15",
-            "mixBet4Commission" => "required|numeric|between:0,15",
-            "mixBet5Commission" => "required|numeric|between:0,15",
-            "mixBet6Commission" => "required|numeric|between:0,15",
-            "mixBet7Commission" => "required|numeric|between:0,15",
-            "mixBet8Commission" => "required|numeric|between:0,15",
-            "mixBet9Commission" => "required|numeric|between:0,15",
-            "mixBet10Commission" => "required|numeric|between:0,15",
-            "mixBet11Commission" => "required|numeric|between:0,15",
-
-        ],$customMessages);
+            "high" => "nullable|numeric|between:0,2",
+            "low" => "nullable|numeric|between:0,2",
+            "mixBet2Commission" => "nullable|numeric|between:0,7",
+            "mixBet3Commission" => "nullable|numeric|between:0,15",
+            "mixBet4Commission" => "nullable|numeric|between:0,15",
+            "mixBet5Commission" => "nullable|numeric|between:0,15",
+            "mixBet6Commission" => "nullable|numeric|between:0,15",
+            "mixBet7Commission" => "nullable|numeric|between:0,15",
+            "mixBet8Commission" => "nullable|numeric|between:0,15",
+            "mixBet9Commission" => "nullable|numeric|between:0,15",
+            "mixBet10Commission" => "nullable|numeric|between:0,15",
+            "mixBet11Commission" => "nullable|numeric|between:0,15",
+        ], $customMessages);
     
         if ($validator->fails()) {
             $errors = $validator->errors()->all();
-        
+    
             // Check if there are any 'required' errors
             $hasRequiredError = false;
             foreach ($errors as $error) {
@@ -83,12 +82,19 @@ class AuthController extends Controller
                     break;
                 }
             }
-        
+    
             if ($hasRequiredError) {
                 return response()->json(['message' => 'Fill all fields'], 400);
             }
-        
+    
             return response()->json(['message' => $error], 400);
+        }
+    
+        $high = $request->high ?? 0;
+        $low = $request->low ?? 0;
+        $mixBetCommissions = [];
+        for ($i = 2; $i <= 11; $i++) {
+            $mixBetCommissions["m$i"] = $request->input("mixBet{$i}Commission") ?? 0;
         }
     
         $creator_role = auth()->user()->role->name;
@@ -104,45 +110,46 @@ class AuthController extends Controller
             "Agent" => 6,
             default => null,
         };
+    
         if ($role_id !== null) {
     
             if ($creator_role !== 'SSSenior') {
                 $creator_single_commissions = SingleCommissions::where('user_id', $creator_id)->first();
                 $creator_mix_commissions = MixBetCommissions::where('user_id', $creator_id)->first();
     
-                if ($request->high > $creator_single_commissions->high) {
+                if ($high > $creator_single_commissions->high) {
                     return response()->json([
                         'message' => "Single bet high commission must be between 0 and {$creator_single_commissions->high}"
                     ], 400);
                 }
-                
-                if($request->low > $creator_single_commissions->low){
+    
+                if ($low > $creator_single_commissions->low) {
                     return response()->json([
                         'message' => "Single bet low commission must be between 0 and {$creator_single_commissions->low}"
                     ], 400);
                 }
-                
+    
                 for ($i = 2; $i <= 11; $i++) {
                     $field = 'm' . $i; 
-                    if ($request->input('mixBet' . $i . 'Commission') > $creator_mix_commissions->$field) {
+                    if ($mixBetCommissions["m$i"] > $creator_mix_commissions->$field) {
                         return response()->json(['message' => "Mix bet $i commission must be between 0 and {$creator_mix_commissions->$field}"], 400);
                     }
                 }
-                
+    
                 $maxSingleBetRequest = intval($request->maxSingleBet);
                 $maxMixBetRequest = intval($request->maxMixBet);
                 $maxSingleBetCreator = intval($creator->maxSingleBet);
                 $maxMixBetCreator = intval($creator->maxMixBet);
-
-                if($maxSingleBetRequest > $maxSingleBetCreator){
+    
+                if ($maxSingleBetRequest > $maxSingleBetCreator) {
                     return response()->json(['message'=>"Cannot give max Single Bet amount more than limit"],400);
                 }
-                if($maxMixBetRequest > $maxMixBetCreator){
+                if ($maxMixBetRequest > $maxMixBetCreator) {
                     return response()->json(['message'=>"Cannot give max Mix Bet amount more than limit"],400);
                 }
             }
             $balance = $request->balance ?? 0;
-
+    
             if ($creator_role !== 'SSSenior' && $balance > 0) {
                 if ($creator->balance < $balance) {
                     return response()->json(['message' => 'Insufficient balance'], 400);
@@ -158,37 +165,27 @@ class AuthController extends Controller
                 'balance' => $balance,
                 'role_id' => $role_id,
                 'created_by' => $creator_id,
-                'maxSingleBet'=>$request->maxSingleBet,
-                'maxMixBet'=>$request->maxMixBet,
+                'maxSingleBet' => $request->maxSingleBet,
+                'maxMixBet' => $request->maxMixBet,
             ]);
     
-                SingleCommissions::create([
-                    'user_id' => $user->id,
-                    'high' => $request->high,
-                    'low' => $request->low
-                ]);
+            SingleCommissions::create([
+                'user_id' => $user->id,
+                'high' => $high,
+                'low' => $low
+            ]);
     
-                MixBetCommissions::create([
-                    'user_id' => $user->id,
-                    "m2" => $request->input('mixBet2Commission'),
-                    "m3" => $request->input('mixBet3Commission'),
-                    "m4" => $request->input('mixBet4Commission'),
-                    "m5" => $request->input('mixBet5Commission'),
-                    "m6" => $request->input('mixBet6Commission'),
-                    "m7" => $request->input('mixBet7Commission'),
-                    "m8" => $request->input('mixBet8Commission'),
-                    "m9" => $request->input('mixBet9Commission'),
-                    "m10" => $request->input('mixBet10Commission'),
-                    "m11" => $request->input('mixBet11Commission'),
-                ]);
+            MixBetCommissions::create(array_merge([
+                'user_id' => $user->id,
+            ], $mixBetCommissions));
     
-            if ($request->balance > 0) {
+            if ($balance > 0) {
                 Transition::create([
                     'user_id' => $user->id,
                     'description' => 'From ' . $creator->username,
-                    'amount'=>$request->balance,
-                    'IN'=>$request->balance,
-                    'balance'=>$request->balance,
+                    'amount' => $balance,
+                    'IN' => $balance,
+                    'balance' => $balance,
                 ]);
             }
     
@@ -198,12 +195,12 @@ class AuthController extends Controller
         }
     }
     
+    
     public function login(Request $request){
 
         $validator = Validator::make($request->all(), [
             "username" => "required|string",
             "password" => "required",
-            // "remember_me"=>"boolean",
         ]);
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()], 400);
