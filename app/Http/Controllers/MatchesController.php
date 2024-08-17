@@ -52,29 +52,31 @@ class MatchesController extends Controller
         $data = $request->all();
         
         foreach ($data as $matchData) {
-    
-            Matches::updateOrCreate(
-                [
-                    'HomeTeam' => $matchData['HomeTeam'],
-                    'AwayTeam' => $matchData['AwayTeam'],
-                    'MatchTime' => $matchData['MatchTime'],
-                    'IsEnd' => false
-                ],
-                [
-                    'League' => $matchData['League'],
-                    'Hdp' => $matchData['Hdp'],
-                    'HdpGoal' => $matchData['HdpGoal'],
-                    'HdpUnit' => $matchData['HdpUnit'],
-                    'Gp' => $matchData['Gp'],
-                    'GpGoal' => $matchData['GpGoal'],
-                    'GpUnit' => $matchData['GpUnit'],
-                    'HomeUp' => $matchData['HomeUp'],
-                    'HomeGoal' => $matchData['HomeGoal'],
-                    'AwayGoal' => $matchData['AwayGoal'],
-                    'IsEnd' => false // Update the match to ensure it's marked as not ended
-                ]
-            );
+            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
+                Matches::updateOrCreate(
+                    [
+                        'HomeTeam' => $matchData['HomeTeam'],
+                        'AwayTeam' => $matchData['AwayTeam'],
+                        'MatchTime' => $matchData['MatchTime'],
+                        'IsEnd' => false
+                    ],
+                    [
+                        'League' => $matchData['League'] ?? null,
+                        'Hdp' => $matchData['Hdp'] ?? null,
+                        'HdpGoal' => $matchData['HdpGoal'] ?? null,
+                        'HdpUnit' => $matchData['HdpUnit'] ?? null,
+                        'Gp' => $matchData['Gp'] ?? null,
+                        'GpGoal' => $matchData['GpGoal'] ?? null,
+                        'GpUnit' => $matchData['GpUnit'] ?? null,
+                        'HomeUp' => $matchData['HomeUp'] ?? null,
+                        'HomeGoal' => $matchData['HomeGoal'] ?? null,
+                        'AwayGoal' => $matchData['AwayGoal'] ?? null,
+                        'IsEnd' => false
+                    ]
+                );
+            }
         }
+        
     
         return response()->json(['status' => 'success'],200);
     }
