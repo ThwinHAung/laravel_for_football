@@ -27,8 +27,7 @@ class PayoutService
         }
 
         DB::transaction(function () use ($match) {
-            $accumulators = Accumulator::where('match_id', $match->id)->where('status', 'Accepted')->lockForUpdate()->get();
-            Log::info('Processing payouts for match', ['match_id' => $match->id]);
+            $accumulators = Accumulator::where('match_id', $match->id)->where('status', 'Accepted')->lockForUpdate()->get(); 
     
             foreach ($accumulators as $accumulator) {
                 $this->calculateAccumulatorPayout($accumulator, $match);
@@ -295,7 +294,6 @@ class PayoutService
                 $query->where('status', '!=', 'completed');
             })
             ->count();
-        Log::info('Checking if all matches are completed', ['bet_id' => $betId, 'incomplete_matches' => $count]);
         return $count == 0;
     }
 
