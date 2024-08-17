@@ -16,16 +16,16 @@ return new class extends Migration
         Schema::create('matches', function (Blueprint $table) {
             $table->id();
             $table->dateTime('MatchTime')->nullable();
-            $table->string('League');
-            $table->string('HomeTeam');
-            $table->string('AwayTeam');
+            $table->string('League')->nullable();
+            $table->string('HomeTeam')->nullable();
+            $table->string('AwayTeam')->nullable();
             $table->string('Hdp')->nullable();
-            $table->integer('HdpGoal');
-            $table->integer('HdpUnit');
+            $table->integer('HdpGoal')->nullable();
+            $table->integer('HdpUnit')->nullable();
             $table->string('Gp')->nullable();
-            $table->integer('GpGoal');
-            $table->integer('GpUnit');
-            $table->boolean('HomeUp');
+            $table->integer('GpGoal')->nullable();
+            $table->integer('GpUnit')->nullable();
+            $table->boolean('HomeUp')->default(true);
             $table->integer('HomeGoal')->default(0);
             $table->integer('AwayGoal')->default(0);
             $table->boolean('IsEnd')->default(False);

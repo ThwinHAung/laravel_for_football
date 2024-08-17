@@ -18,11 +18,15 @@ class MatchesController extends Controller
 {
     public function retrieve_match()
     {
+        $current_time = now()->timezone('Asia/Yangon'); 
         $pending_matches = Matches::where('IsEnd', False)
-        ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp')
-        ->get();
+            ->where('MatchTime', '>', $current_time) 
+            ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp')
+            ->get();
+    
         return response()->json($pending_matches, 200);
     }
+    
     public function deleteMatch(Request $request)
     {
 
@@ -85,7 +89,6 @@ class MatchesController extends Controller
         $data = $request->all();
         
         foreach ($data as $matchData) {
-            // Ensure required fields are present before proceeding
             if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
                 return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
