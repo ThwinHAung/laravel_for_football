@@ -12,16 +12,16 @@ use Illuminate\Support\Facades\Route;
 Route::post("login", [AuthController::class,"login"]);
 Route::post('/auto-login', [AuthController::class, 'autoLogin']);
 
-Route::post('v4N1/upload_match',[MatchesController::class,'upload_matches']);
+Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
+Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
+
+// Route::post('v4N1/upload_match',[MatchesController::class,'upload_matches']);
+
 
 Route::group([
     "middleware"=> ["auth:api"],
 ],function(){
     Route::post("register", [AuthController::class,"register"]);
-    Route::post("matchupdateStatus",[MatchesController::class,"match_status"]);
-    Route::post("addingleague",[LeagueController::class,"add_league"]);
-    Route::get("leagues",[LeagueController::class,"retrieves_league"]);
-    Route::post("addingmatch",[MatchesController::class,"add_match"]);
     Route::get("retrieve_match",[MatchesController::class,'retrieve_match']);
     Route::post("manageUnits", [TransitionController::class,"manageUnits"]);
     Route::post("transition", [TransitionController::class,"record_transition"]);
@@ -32,8 +32,6 @@ Route::group([
     // Route::post("delete_user",[StatusController::class,"delete_user"]);
     Route::post("change_password_user",[AuthController::class,"change_passowrd_user"]);
     Route::post("change_password",[AuthController::class,"change_passowrd"]);
-    Route::post("deleteMatch",[MatchesController::class,"deleteMatch"]);
-    Route::put('editMatches/{id}', [MatchesController::class, 'edit_match']);
 
     Route::get("getmemberCount", [StatusController::class,"member_count"]);
     Route::get("getdownlineBalance", [StatusController::class,"down_line"]);

@@ -15,81 +15,12 @@ use PhpParser\Node\Expr\Match_;
 
 class MatchesController extends Controller
 {
-    //
-    public function add_match(Request $request){
-        $validator = Validator::make($request->all(),[
-            "league_id"=>"required",
-            "home_match"=>"required",
-            "away_match"=>"required",
-            "match_time"=>"required",
-            "special_odd_team"=>"required",
-            "special_odd_first_digit"=>"required",
-            "special_odd_sign"=>"required",
-            "special_odd_last_digit"=>"required",
-            "over_under_first_digit"=>"required",
-            "over_under_sign"=>"required",
-            "over_under_last_digit"=>"required",
-        ]);
-        if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()], 400);
-        }
-        Matches::create([
-            "league_id"=>$request->league_id,
-            "home_match"=>$request->home_match,
-            "away_match"=>$request->away_match,
-            "match_time"=>$request->match_time,
-            "special_odd_team"=>$request->special_odd_team,
-            "special_odd_first_digit"=>$request->special_odd_first_digit,
-            "special_odd_last_digit"=>$request->special_odd_last_digit,
-            "special_odd_sign"=>$request->special_odd_sign,
-            "over_under_first_digit"=>$request->over_under_first_digit,
-            "over_under_sign"=>$request->over_under_sign,
-            "over_under_last_digit"=>$request->over_under_last_digit,
-            "home_goals"=>null,
-            "away_goals"=>null
-
-        ]);
-        return response()->json(['message'=> 'match adding successful'],200);
-    }
     public function retrieve_match()
     {
-        $pending_matches = Matches::where('status', 'pending')
-            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
-            ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.special_odd_team', 'matches.special_odd_first_digit', 'matches.special_odd_sign', 'matches.special_odd_last_digit', 'matches.over_under_first_digit', 'matches.over_under_sign', 'matches.over_under_last_digit', 'matches.status')
-            ->get();
+        $pending_matches = Matches::where('IsEnd', False)
+        ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp')
+        ->get();
         return response()->json($pending_matches, 200);
-    }
-    public function match_status(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            "match_id" => "required",
-            "home_goals" => "required",
-            "away_goals" => "required",
-        ]);
-    
-        if ($validator->fails()) {
-            Log::error('Validation failed', ['errors' => $validator->errors()]);
-            return response()->json(['message' => $validator->errors()], 400);
-        }
-    
-        $match = Matches::find($request->input('match_id'));
-        if (!$match) {
-            Log::error('Match not found', ['match_id' => $request->input('match_id')]);
-            return response()->json(['message' => 'Match not found'], 404);
-        }
-    
-        DB::transaction(function () use ($match, $request) {
-            $match->home_goals = $request->input('home_goals');
-            $match->away_goals = $request->input('away_goals');
-            $match->status = 'completed';
-            $match->save();
-    
-            Log::info('Match status updated', ['match_id' => $match->id, 'home_goals' => $match->home_goals, 'away_goals' => $match->away_goals]);
-    
-            MatchFinished::dispatch($match);
-        });
-    
-        return response()->json(['message' => 'Match status updated to completed'], 200);
     }
     public function deleteMatch(Request $request)
     {
@@ -103,61 +34,110 @@ class MatchesController extends Controller
 
         return response()->json(['message' => 'Match deleted successfully'], 200);
     }
-
-    public function edit_match(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            "home_match" => "nullable",
-            "away_match" => "nullable",
-            "special_odd_last_digit" => "nullable|integer",
-            "over_under_last_digit" => "nullable|integer",
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json(['message' => $validator->errors()], 400);
-        }
-    
-        $match = Matches::find($id);
-        if (!$match) {
-            return response()->json(['message' => 'Match not found'], 404);
-        }
-    
-        $updateData = [];
-        if ($request->filled('home_match')) {
-            $updateData["home_match"] = $request->home_match;
-        }
-        if ($request->filled('away_match')) {
-            $updateData["away_match"] = $request->away_match;
-        }
-        if ($request->filled('special_odd_last_digit')) {
-            $updateData["special_odd_last_digit"] = $request->special_odd_last_digit;
-        }
-        if ($request->filled('over_under_last_digit')) {
-            $updateData["over_under_last_digit"] = $request->over_under_last_digit;
-        }
-    
-        $match->update($updateData);
-    
-        return response()->json(['message' => 'Match updated successfully'], 200);
-    }
-
-    public function matchHistory()
+      public function matchHistory()
     {
         $endOfToday = Carbon::tomorrow()->subSecond();
         $startOfYesterday = Carbon::yesterday();
     
-        $pending_matches = Matches::where('status', 'completed')
-            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
-            ->select('matches.id', 'leagues.name as league_name', 'matches.home_match', 'matches.away_match', 'matches.match_time', 'matches.home_goals', 'matches.away_goals')
+        $pending_matches = Matches::where('IsEnd', true)
+            ->select('matches.id', 'matches.League', 'matches.HomeTeam', 'matches.AwayTeam', 'matches.MatchTime', 'matches.HomeGoal', 'matches.AwayGoal')
             ->whereBetween('matches.created_at', [$startOfYesterday, $endOfToday])
             ->get();
         
         return response()->json($pending_matches, 200);
     }
-    public function upload_matches(Request $request){
-        Log::info('Received football odds data', ['data' => $request->all()]);
-        return response()->json([
-            'received_data' => $request->all()
-        ], 200);
+    public function updateMatches(Request $request)
+    {
+        $data = $request->all();
+        
+        foreach ($data as $matchData) {
+            $matchTime = Carbon::parse($matchData['MatchTime']);
+    
+            Matches::updateOrCreate(
+                [
+                    'HomeTeam' => $matchData['HomeTeam'],
+                    'AwayTeam' => $matchData['AwayTeam'],
+                    'MatchTime' => $matchTime,
+                    'IsEnd' => false
+                ],
+                [
+                    'League' => $matchData['League'],
+                    'Hdp' => $matchData['Hdp'],
+                    'HdpGoal' => $matchData['HdpGoal'],
+                    'HdpUnit' => $matchData['HdpUnit'],
+                    'Gp' => $matchData['Gp'],
+                    'GpGoal' => $matchData['GpGoal'],
+                    'GpUnit' => $matchData['GpUnit'],
+                    'HomeUp' => $matchData['HomeUp'],
+                    'HomeGoal' => $matchData['HomeGoal'],
+                    'AwayGoal' => $matchData['AwayGoal'],
+                    'IsEnd' => false // Update the match to ensure it's marked as not ended
+                ]
+            );
+        }
+    
+        return response()->json(['status' => 'success']);
     }
+    public function updateGoals(Request $request)
+    {
+        $data = $request->all();
+        
+        foreach ($data as $matchData) {
+            $matchTime = Carbon::parse($matchData['MatchTime']);
+    
+            if ($matchData['IsEnd'] === true) {
+                $match = Matches::updateOrCreate(
+                    [
+                        'HomeTeam' => $matchData['HomeTeam'],
+                        'AwayTeam' => $matchData['AwayTeam'],
+                        'MatchTime' => $matchTime
+                    ],
+                    [
+                        'League' => $matchData['League'],
+                        'HomeGoal' => $matchData['HomeGoal'],
+                        'AwayGoal' => $matchData['AwayGoal'],
+                        'IsEnd' => true,
+                        'IsPost' => $matchData['IsPost']
+                    ]
+                );
+                event(new MatchFinished($match));
+
+                return response()->json(['message' => 'hello', 'reason' => 'The match has ended.']);
+            }
+    
+            if ($matchData['IsPost'] === true) {
+                $match = Matches::updateOrCreate(
+                    [
+                        'HomeTeam' => $matchData['HomeTeam'],
+                        'AwayTeam' => $matchData['AwayTeam'],
+                        'MatchTime' => $matchTime
+                    ],
+                    [
+                        'League' => $matchData['League'],
+                        'HomeGoal' => $matchData['HomeGoal'],
+                        'AwayGoal' => $matchData['AwayGoal'],
+                        'IsEnd' => false,
+                        'IsPost' => true
+                    ]
+                );
+                // event(new MatchPostponed($match));
+    
+                return response()->json(['status' => 'success', 'message' => 'Match postponed and event triggered'], 200);
+            }
+    
+            Matches::where([
+                ['home_team', $matchData['HomeTeam']],
+                ['away_team', $matchData['AwayTeam']],
+                ['match_time', $matchTime],
+                ['IsEnd', false]
+            ])->update([
+                'home_goal' => $matchData['HomeGoal'],
+                'away_goal' => $matchData['AwayGoal'],
+                'IsPost' => $matchData['IsPost']
+            ]);
+        }
+    
+        return response()->json(['status' => 'success'],200);
+    }
+    
 }

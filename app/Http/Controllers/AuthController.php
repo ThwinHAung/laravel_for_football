@@ -87,7 +87,7 @@ class AuthController extends Controller
                 return response()->json(['message' => 'Fill all fields'], 400);
             }
     
-            return response()->json(['message' => $error], 400);
+            return response()->json(['message' => $validator->errors()], 400);
         }
     
         $high = $request->high ?? 0;

@@ -16,6 +16,7 @@ class Bets extends Model
         'amount',
         'potential_winning_amount',
         'winning_amount',
+        'created_at'
     ];
     public function user()
     {

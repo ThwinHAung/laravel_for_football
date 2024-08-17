@@ -43,16 +43,12 @@ class PayoutService
 
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
-        $leagueName = DB::table('matches')
-        ->join('leagues', 'matches.league_id', '=', 'leagues.id')
-        ->where('matches.id', $match->id)
-        ->value('leagues.name');
 
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
 
         if ($potentialWinningAmount > $bet->amount) {
             $winningAmount = $potentialWinningAmount - $bet->amount;
-            $taxRate = $this->getTaxRate($leagueName);
+            $taxRate = $this->getTaxRate($match->League);
             $taxAmount = $winningAmount * $taxRate;
             $netWinnings = $winningAmount - $taxAmount;
             
@@ -92,36 +88,33 @@ class PayoutService
 
     protected function calculatePotentialWinningAmount(Bets $bet,Matches $match){
         $amount = $bet->amount;
-        $homeGoals = $match->home_goals;
-        $awayGoals = $match->away_goals;
+        $homeGoals = $match->HomeGoal;
+        $awayGoals = $match->AwayGoal;
         $totalGoals = $homeGoals + $awayGoals;
-        $specialOddTeam = $match->special_odd_team;
-        $specialOddFirstDigit = $match->special_odd_first_digit;
-        $specialOddSign = $match->special_odd_sign;
-        $specialOddValue = $match->special_odd_last_digit;
-        $overUnder_first_digit = $match->over_under_first_digit;
-        $overUnder_sign = $match->over_under_odd_sign;
-        $overUnder_value = $match->over_under_last_digit;
-
+        $HomeUp = $match->HomeUp;
+        $HdpGoal = $match->HdpGoal;
+        $HdpUnit = $match->HdpUnit;
+        $GpGoal = $match->GpGoal;
+        $GpUnit = $match->GpUnit;
 
         switch($bet->selected_outcome){
             case 'W1':
-                return $this->calculateW1Payout($amount, $homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue);
+                return $this->calculateW1Payout($amount, $homeGoals, $awayGoals, $HomeUp, $HdpGoal, $HdpUnit);
             case 'W2':
-                return $this->calculateW2Payout($amount, $homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue);
+                return $this->calculateW2Payout($amount, $homeGoals, $awayGoals, $HomeUp, $HdpGoal, $HdpUnit);
             case 'Over':
-                if($totalGoals > $overUnder_first_digit){
+                if($totalGoals > $GpGoal){
                     return $amount * 2;
-                }elseif($totalGoals == $overUnder_first_digit){
-                    return $amount * (1 + ($overUnder_sign == "+" ? $overUnder_value : -$overUnder_value) / 100);
+                }elseif($totalGoals == $GpGoal){
+                    return $amount * (1 + ($GpUnit / 100));
                 }else{
                     return 0;
                 }
             case 'Under':
-                if($totalGoals < $overUnder_first_digit){
+                if($totalGoals < $GpGoal){
                     return $amount * 2;
-                }elseif($totalGoals == $overUnder_first_digit){
-                    return $amount * (1 + ($overUnder_sign == "+" ? $overUnder_value : -$overUnder_value) / 100);
+                }elseif($totalGoals == $GpGoal){
+                    return $amount * (1 + ($GpUnit / 100));
                 }else{
                     return 0;
                 }
@@ -137,28 +130,28 @@ class PayoutService
         }
     }
 
-    protected function calculateW1Payout($amount, $homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue) {
+    protected function calculateW1Payout($amount, $homeGoals, $awayGoals, $HomeUp, $HdpGoal, $HdpUnit) {
         $goalDifference = $homeGoals - $awayGoals;
     
-        if ($specialOddTeam == 'H') {
-            if ($goalDifference > $specialOddFirstDigit) {
+        if ($HomeUp == true) {
+            if ($goalDifference > $HdpGoal) {
                 return $amount * 2; 
-            } elseif ($goalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
-            } elseif ($goalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
+            } elseif ($goalDifference == $HdpGoal) {
+                return $amount * (1 + ($HdpUnit / 100)); 
+            } elseif ($goalDifference == 0 && $HdpGoal == 0) {
+                return $amount * (1 + ($HdpUnit / 100)); 
             } else {
                 return 0; 
             }
-        } elseif ($specialOddTeam == 'A') {
+        } elseif ($HomeUp == false) {
             $adjustedGoalDifference = -$goalDifference;
     
-            if ($adjustedGoalDifference > $specialOddFirstDigit) {
+            if ($adjustedGoalDifference > $HdpGoal) {
                 return 0; 
-            } elseif ($adjustedGoalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); 
-            } elseif ($adjustedGoalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100);
+            } elseif ($adjustedGoalDifference == $HdpGoal) {
+                return $amount * (1 + ($HdpUnit / 100)); 
+            } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
+                return $amount * (1 + ($HdpUnit / 100));
             } else {
                 return $amount * 2; 
             }
@@ -166,28 +159,28 @@ class PayoutService
     }
     
 
-    protected function calculateW2Payout($amount, $homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue) {
+    protected function calculateW2Payout($amount, $homeGoals, $awayGoals, $HomeUp, $HdpGoal, $HdpUnit) {
         $goalDifference = $awayGoals - $homeGoals;
     
-        if ($specialOddTeam == 'A') {
-            if ($goalDifference > $specialOddFirstDigit) {
+        if ($HomeUp == false) {
+            if ($goalDifference > $HdpGoal) {
                 return $amount * 2; 
-            } elseif ($goalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
-            } elseif ($goalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100); 
+            } elseif ($goalDifference == $HdpGoal) {
+                return $amount * (1 + ($HdpUnit / 100)); 
+            } elseif ($goalDifference == 0 && $HdpGoal == 0) {
+                return $amount * (1 + ($HdpUnit / 100)); 
             } else {
                 return 0; 
             }
-        } elseif ($specialOddTeam == 'H') {
+        } elseif ($HomeUp == true) {
             $adjustedGoalDifference = -$goalDifference;
     
-            if ($adjustedGoalDifference > $specialOddFirstDigit) {
+            if ($adjustedGoalDifference > $HdpGoal) {
                 return 0; 
-            } elseif ($adjustedGoalDifference == $specialOddFirstDigit) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); 
-            } elseif ($adjustedGoalDifference == 0 && $specialOddFirstDigit == 0) {
-                return $amount * (1 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100); 
+            } elseif ($adjustedGoalDifference == $HdpGoal) {
+                return $amount * (1 + ($HdpUnit / 100)); 
+            } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
+                return $amount * (1 + ($HdpUnit / 100)); 
             } else {
                 return $amount * 2; 
             }
@@ -204,99 +197,92 @@ class PayoutService
         }
         $accumulator->wining_odd = $potentialWiningOdd;
         $accumulator->save();
-        Log::info('Accumulator payout calculated', [
-            'accumulator_id' => $accumulator->id,
-            'wining_odd' => $accumulator->wining_odd,
-            'status' => $accumulator->status,
-        ]);
     }
     
     protected function calculatePotentialWinningOdd(Accumulator $accumulator,Matches $match){
-        $homeGoals = $match->home_goals;
-        $awayGoals = $match->away_goals;
+        $homeGoals = $match->HomeGoal;
+        $awayGoals = $match->AwayGoal;
         $totalGoals = $homeGoals + $awayGoals;
-        $specialOddTeam = $match->special_odd_team;
-        $specialOddFirstDigit = $match->special_odd_first_digit;
-        $specialOddSign = $match->special_odd_sign;
-        $specialOddValue = $match->special_odd_last_digit;
-        $overUnder_first_digit = $match->over_under_first_digit;
-        $overUnder_sign = $match->over_under_odd_sign;
-        $overUnder_value = $match->over_under_last_digit;
+        $HomeUp = $match->HomeUp;
+        $HdpGoal = $match->HdpGoal;
+        $HdpUnit = $match->HdpUnit;
+        $GpGoal = $match->GpGoal;
+        $GpUnit = $match->GpUnit;
 
         switch($accumulator->selected_outcome){
             case 'W1':
-                return $this->calculateW1PayoutOdd($homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue);
+                return $this->calculateW1PayoutOdd($homeGoals, $awayGoals, $HomeUp,$HdpGoal,$HdpUnit);
             case 'W2':
-                return $this->calculateW2PayoutOdd($homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue);
+                return $this->calculateW2PayoutOdd($homeGoals, $awayGoals, $HomeUp,$HdpGoal,$HdpUnit);
             case 'Over':
-                if($totalGoals > $overUnder_first_digit){
+                if($totalGoals > $GpGoal){
                     return 2.0;
-                }elseif($totalGoals == $overUnder_first_digit){
-                    return (1.0 + ($overUnder_sign == "+" ? $overUnder_value : -$overUnder_value) / 100);
+                }elseif($totalGoals == $GpGoal){
+                    return (1.0 + ($GpUnit / 100));
                 }else{
                     return 0.0;
                 }
             case 'Under':
-                if($totalGoals < $overUnder_first_digit){
+                if($totalGoals < $GpGoal){
                     return 2.0;
-                }elseif($totalGoals == $overUnder_first_digit){
-                    return (1.0 + ($overUnder_sign == "+" ? $overUnder_value : -$overUnder_value) / 100);
+                }elseif($totalGoals == $GpGoal){
+                    return (1.0 + ($GpUnit / 100));
                 }else{
                     return 0.0;
                 }
         }
     }
 
-    protected function calculateW1PayoutOdd($homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue) {
+    protected function calculateW1PayoutOdd($homeGoals, $awayGoals, $HomeUp,$HdpGoal,$HdpUnit) {
         $goalDifference = $homeGoals - $awayGoals;
     
-        if ($specialOddTeam == 'H') {
-            if ($goalDifference > $specialOddFirstDigit) {
+        if ($HomeUp == true) {
+            if ($goalDifference > $HdpGoal) {
                 return 2.0;
-            } elseif ($goalDifference == $specialOddFirstDigit) {
-                return (1.0 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100);
-            } elseif ($goalDifference == 0 && $specialOddFirstDigit == 0) {
-                return (1.0 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100);
+            } elseif ($goalDifference == $HdpGoal) {
+                return (1.0 + ($HdpUnit / 100));
+            } elseif ($goalDifference == 0 && $HdpGoal == 0) {
+                return (1.0 + ($HdpUnit / 100));
             } else {
                 return 0.0;
             }
-        } elseif ($specialOddTeam == 'A') {
+        } elseif ($HomeUp == false) {
             $adjustedGoalDifference = -$goalDifference;
     
-            if ($adjustedGoalDifference > $specialOddFirstDigit) {
+            if ($adjustedGoalDifference > $HdpGoal) {
                 return 0.0;
-            } elseif ($adjustedGoalDifference == $specialOddFirstDigit) {
-                return (1.0 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100);
-            } elseif ($adjustedGoalDifference == 0 && $specialOddFirstDigit == 0) {
-                return (1.0 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100);
+            } elseif ($adjustedGoalDifference == $HdpGoal) {
+                return (1.0 + ($HdpUnit / 100));
+            } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
+                return (1.0 + ($HdpUnit / 100));
             } else {
                 return 2.0;
             }
         }
     }
     
-    protected function calculateW2PayoutOdd($homeGoals, $awayGoals, $specialOddTeam, $specialOddFirstDigit, $specialOddSign, $specialOddValue) {
+    protected function calculateW2PayoutOdd($homeGoals, $awayGoals, $HomeUp,$HdpGoal,$HdpUnit) {
         $goalDifference = $awayGoals - $homeGoals;
     
-        if ($specialOddTeam == 'A') {
-            if ($goalDifference > $specialOddFirstDigit) {
+        if ($HomeUp == false) {
+            if ($goalDifference > $HdpGoal) {
                 return 2.0;
-            } elseif ($goalDifference == $specialOddFirstDigit) {
-                return (1.0 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100);
-            } elseif ($goalDifference == 0 && $specialOddFirstDigit == 0) {
-                return (1.0 + ($specialOddSign == '+' ? $specialOddValue : -$specialOddValue) / 100);
+            } elseif ($goalDifference == $HdpGoal) {
+                return (1.0 + ($HdpUnit / 100));
+            } elseif ($goalDifference == 0 && $HdpGoal == 0) {
+                return (1.0 + ($HdpUnit / 100));
             } else {
                 return 0.0;
             }
-        } elseif ($specialOddTeam == 'H') {
+        } elseif ($HomeUp == true) {
             $adjustedGoalDifference = -$goalDifference;
     
-            if ($adjustedGoalDifference > $specialOddFirstDigit) {
+            if ($adjustedGoalDifference > $HdpGoal) {
                 return 0.0;
-            } elseif ($adjustedGoalDifference == $specialOddFirstDigit) {
-                return (1.0 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100);
-            } elseif ($adjustedGoalDifference == 0 && $specialOddFirstDigit == 0) {
-                return (1.0 + ($specialOddSign == '+' ? -$specialOddValue : $specialOddValue) / 100);
+            } elseif ($adjustedGoalDifference == $HdpGoal) {
+                return (1.0 + ($HdpUnit / 100));
+            } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
+                return (1.0 + ($HdpUnit / 100));
             } else {
                 return 2.0;
             }
@@ -318,43 +304,42 @@ class PayoutService
         DB::transaction(function () use ($betId) {
             $bet = Bets::where('id', $betId)->lockForUpdate()->first();
             if ($bet) {
-                Log::info('Processing accumulator payout', ['bet_id' => $betId]);
                 $accumulatorBets = Accumulator::where('bet_id', $betId)->lockForUpdate()->get();
     
-                $totalOdds = $accumulatorBets->reduce(function ($carry, $item) {
-                    return $carry * $item->wining_odd;
-                }, 1.0);
-    
-                $winningAmount = $bet->amount * $totalOdds;
-    
                 if ($accumulatorBets->where('status', 'Lose')->count() > 0) {
-                    $winningAmount = 0;
                     $bet->status = 'Lose';
-                    $bet->save();
+                    $bet->wining_amount = 0;
                 } else {
-                    $bet->status = 'Win';
+                    $totalOdds = $accumulatorBets->reduce(function ($carry, $item) {
+                        return $carry * $item->wining_odd;
+                    }, 1.0);
+    
+                    $winningAmount = $bet->amount * $totalOdds;
                     $matchCount = $accumulatorBets->count();
                     $taxRate = $this->getAccumulatorTaxRate($matchCount);
                     $taxAmount = $winningAmount * $taxRate;
                     $netWinnings = $winningAmount - $taxAmount;
+
                     $bet->wining_amount = $netWinnings;
-                    $bet->save();
-                    $this->updateUserBalance($bet->user_id, $netWinnings);
-                    $user = User::find($bet->user_id);
-                    Transition::create([
-                        'user_id' => $bet->user_id,
-                        'description' => 'Win (Bet ID: ' . $bet->id . ')',
-                        'type' => 'IN',
-                        'amount'=>$bet->wining_amount,
-                        'Win'=>$bet->wining_amount,
-                        'balance'=>$user->balance
-                    ]);
+                    $bet->status = 'Win';
+
                 }
     
-                // $this->calculateAccumulatorBetCommission($bet->user_id, $bet->amount, $matchCount);
+                $bet->save();
+                $this->updateUserBalance($bet->user_id, $bet->wining_amount);
+                $user = User::find($bet->user_id);
+                Transition::create([
+                    'user_id' => $bet->user_id,
+                    'description' => 'Win (Bet ID: ' . $bet->id . ')',
+                    'type' => 'IN',
+                    'amount'=>$bet->wining_amount,
+                    'Win'=>$bet->wining_amount,
+                    'balance'=>$user->balance
+                ]);
             }
         });
     }
+    
 
     protected function getTaxRate($leagueName)
     {
@@ -371,92 +356,92 @@ class PayoutService
             return 0.0; 
         }
     }
-//  // Function to get the single commission recipient and distribute the remaining commission up the hierarchy
-// private function getSingleCommissionRecipient($userId, $commissionType, $remainingCommission)
-// {
-//     $user = User::find($userId);
-//     $userCommissionRate = SingleCommissions::where('user_id', $userId)->value($commissionType);
+ // Function to get the single commission recipient and distribute the remaining commission up the hierarchy
+    // private function getSingleCommissionRecipient($userId, $commissionType, $remainingCommission)
+    // {
+    //     $user = User::find($userId);
+    //     $userCommissionRate = SingleCommissions::where('user_id', $userId)->value($commissionType);
 
-//     if ($userCommissionRate >= $remainingCommission) {
-//         return ['user' => $user, 'commission' => $remainingCommission];
-//     }
+    //     if ($userCommissionRate >= $remainingCommission) {
+    //         return ['user' => $user, 'commission' => $remainingCommission];
+    //     }
 
-//     // Allocate the user's commission and reduce the remaining commission
-//     $allocatedCommission = $userCommissionRate;
-//     $remainingCommission -= $allocatedCommission;
+    //     // Allocate the user's commission and reduce the remaining commission
+    //     $allocatedCommission = $userCommissionRate;
+    //     $remainingCommission -= $allocatedCommission;
 
-//     if ($user->created_by !== null && $remainingCommission > 0) {
-//         // Pass the remaining commission up the hierarchy
-//         return $this->getSingleCommissionRecipient($user->created_by, $commissionType, $remainingCommission);
-//     }
+    //     if ($user->created_by !== null && $remainingCommission > 0) {
+    //         // Pass the remaining commission up the hierarchy
+    //         return $this->getSingleCommissionRecipient($user->created_by, $commissionType, $remainingCommission);
+    //     }
 
-//     return ['user' => $user, 'commission' => $allocatedCommission];
-// }
+    //     return ['user' => $user, 'commission' => $allocatedCommission];
+    // }
 
 // // Function to get the accumulator commission recipient and distribute the remaining commission up the hierarchy
-// private function getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission)
-// {
-//     $user = User::find($userId);
-//     $userCommissionRate = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
+//     private function getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission)
+//     {
+//         $user = User::find($userId);
+//         $userCommissionRate = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
 
-//     if ($userCommissionRate >= $remainingCommission) {
-//         return ['user' => $user, 'commission' => $remainingCommission];
+//         if ($userCommissionRate >= $remainingCommission) {
+//             return ['user' => $user, 'commission' => $remainingCommission];
+//         }
+
+//         // Allocate the user's commission and reduce the remaining commission
+//         $allocatedCommission = $userCommissionRate;
+//         $remainingCommission -= $allocatedCommission;
+
+//         if ($user->created_by !== null && $remainingCommission > 0) {
+//             // Pass the remaining commission up the hierarchy
+//             return $this->getAccumulatorCommissionRecipient($user->created_by, $matchCount, $remainingCommission);
+//         }
+
+//         return ['user' => $user, 'commission' => $allocatedCommission];
 //     }
 
-//     // Allocate the user's commission and reduce the remaining commission
-//     $allocatedCommission = $userCommissionRate;
-//     $remainingCommission -= $allocatedCommission;
+// Function to calculate the single bet commission
+    // public function calculateSingleBetCommission($userId, $betAmount, $league)
+    // {
+    //     $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
+    //     $isHigh = in_array($league, $topLeagues);
 
-//     if ($user->created_by !== null && $remainingCommission > 0) {
-//         // Pass the remaining commission up the hierarchy
-//         return $this->getAccumulatorCommissionRecipient($user->created_by, $matchCount, $remainingCommission);
-//     }
+    //     $commissionType = $isHigh ? 'high' : 'low';
+    //     $remainingCommission = 0.02 * $betAmount;  // Constant rate is 2%
 
-//     return ['user' => $user, 'commission' => $allocatedCommission];
-// }
+    //     $commissionData = $this->getSingleCommissionRecipient($userId, $commissionType, $remainingCommission);
 
-// // Function to calculate the single bet commission
-// public function calculateSingleBetCommission($userId, $betAmount, $league)
-// {
-//     $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
-//     $isHigh = in_array($league, $topLeagues);
+    //     if ($commissionData['user']) {
+    //         $commissionData['user']->balance += $commissionData['commission'];
+    //         $commissionData['user']->save();
 
-//     $commissionType = $isHigh ? 'high' : 'low';
-//     $remainingCommission = 0.02 * $betAmount;  // Constant rate is 2%
+    //         return $commissionData['commission'];
+    //     }
 
-//     $commissionData = $this->getSingleCommissionRecipient($userId, $commissionType, $remainingCommission);
-
-//     if ($commissionData['user']) {
-//         $commissionData['user']->balance += $commissionData['commission'];
-//         $commissionData['user']->save();
-
-//         return $commissionData['commission'];
-//     }
-
-//     return 0;
-// }
+    //     return 0;
+    // }
 
 // Function to calculate the accumulator bet commission
-// public function calculateAccumulatorBetCommission($userId, $betAmount, $matchCount)
-// {
-//     $commissionRate = ($matchCount == 2) ? 0.07 : 0.15;
-//     $remainingCommission = $commissionRate * $betAmount;
+    // public function calculateAccumulatorBetCommission($userId, $betAmount, $matchCount)
+    // {
+    //     $commissionRate = ($matchCount == 2) ? 0.07 : 0.15;
+    //     $remainingCommission = $commissionRate * $betAmount;
 
-//     $commissionData = $this->getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission);
+    //     $commissionData = $this->getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission);
 
-//     if ($commissionData['user']) {
-//         $commissionData['user']->balance += $commissionData['commission'];
-//         $commissionData['user']->save();
+    //     if ($commissionData['user']) {
+    //         $commissionData['user']->balance += $commissionData['commission'];
+    //         $commissionData['user']->save();
 
-//         Log::info('Accumulator bet commission calculated', [
-//             'user_id' => $userId,
-//             'commission_user_id' => $commissionData['user']->id,
-//             'commission_amount' => $commissionData['commission'],
-//         ]);
+    //         Log::info('Accumulator bet commission calculated', [
+    //             'user_id' => $userId,
+    //             'commission_user_id' => $commissionData['user']->id,
+    //             'commission_amount' => $commissionData['commission'],
+    //         ]);
 
-//         return $commissionData['commission'];
-//     }
+    //         return $commissionData['commission'];
+    //     }
 
-//     return 0;
-// }
+    //     return 0;
+    // }
 }

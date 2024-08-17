@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class BetController extends Controller
@@ -34,8 +35,10 @@ class BetController extends Controller
                 'match_id'=>$request->match_id,
                 'bet_type'=>'single',
                 'selected_outcome'=>$request->selected_outcome,
-                'amount'=>$request->amount
+                'amount'=>$request->amount,
             ]);
+            Log::info('Bet placed at: ' . now());
+
             $User->balance -= $request->amount;
             $User->save();
             Transition::create([
@@ -138,36 +141,28 @@ class BetController extends Controller
         ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount','bets.created_at')
         ->get();
 
-        
-
-        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets,'accumulatorBets'=>$accumulatorBets]);
-
-        
+        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets,'accumulatorBets'=>$accumulatorBets]);       
     }
     public function getSingleBetSlip($bet_id){
         $bet = DB::table('bets')
         ->join('matches', 'bets.match_id', '=', 'matches.id')
-        ->join('leagues', 'matches.league_id', '=', 'leagues.id')
         ->where('bets.id', $bet_id)
         ->select(
             'bets.selected_outcome',
             'bets.amount',
             'bets.status',
             'bets.wining_amount',
-            'matches.home_match',
-            'matches.away_match',
-            'matches.match_time',
-            'matches.special_odd_team',
-            'matches.special_odd_first_digit',
-            'matches.special_odd_sign',
-            'matches.special_odd_last_digit',
-            'matches.over_under_first_digit',
-            'matches.over_under_sign',
-            'matches.over_under_last_digit',
-            'matches.home_goals',
-            'matches.away_goals',
-            'matches.status as match_status',
-            'leagues.name as league_name'
+            'matches.HomeTeam',
+            'matches.AwayTeam',
+            'matches.MatchTime',
+            'matches.HomeUp',
+            'matches.HdpGoal',
+            'matches.HdpUnit',
+            'matches.GpGoal',
+            'matches.GpUnit',
+            'matches.HomeGoal',
+            'matches.AwayGoal',
+            'matches.League'
         )
         ->first();
 
@@ -177,21 +172,18 @@ class BetController extends Controller
                 'bet' => [
                     'selected_outcome' => $bet->selected_outcome,
                     'amount' => $bet->amount,
-                    'user_status' => $bet->status,
                     'wining_amount' => $bet->wining_amount,
-                    'league_name' => $bet->league_name,
-                    'home_match' => $bet->home_match,
-                    'away_match' => $bet->away_match,
-                    'match_time' => $bet->match_time,
-                    'special_odd_team' => $bet->special_odd_team,
-                    'special_odd_first_digit' => $bet->special_odd_first_digit,
-                    'special_odd_sign' => $bet->special_odd_sign,
-                    'special_odd_last_digit' => $bet->special_odd_last_digit,
-                    'over_under_first_digit' => $bet->over_under_first_digit,
-                    'over_under_sign' => $bet->over_under_sign,
-                    'over_under_last_digit' => $bet->over_under_last_digit,
-                    'home_goals' => $bet->home_goals,
-                    'away_goals' => $bet->away_goals,
+                    'league_name' => $bet->League,
+                    'home_match' => $bet->HomeTeam,
+                    'away_match' => $bet->AwayTeam,
+                    'match_time' => $bet->MatchTime,
+                    'HomeUp'=>$bet->HomeUp,
+                    'HdpGoal' => $bet->HdpGoal,
+                    'HdpUnit' => $bet->HdpUnit,
+                    'GpGoal' => $bet->GpGoal,
+                    'GpUnit' => $bet->GpUnit,
+                    'home_goals' => $bet->HomeGoal,
+                    'away_goals' => $bet->AwayGoal,
                     'status' => $bet->status,
                 ]
             ];
@@ -219,24 +211,20 @@ class BetController extends Controller
 
         $accumulator_entries = DB::table('accumulators')
             ->join('matches', 'accumulators.match_id', '=', 'matches.id')
-            ->join('leagues', 'matches.league_id', '=', 'leagues.id')
             ->where('accumulators.bet_id', $bet_id)
             ->select(
                 'accumulators.selected_outcome',
-                'matches.home_match',
-                'matches.away_match',
-                'matches.match_time',
-                'matches.special_odd_team',
-                'matches.special_odd_first_digit',
-                'matches.special_odd_sign',
-                'matches.special_odd_last_digit',
-                'matches.over_under_first_digit',
-                'matches.over_under_sign',
-                'matches.over_under_last_digit',
-                'matches.home_goals',
-                'matches.away_goals',
-                'matches.status as match_status',
-                'leagues.name as league_name'
+                'matches.HomeTeam',
+                'matches.AwayTeam',
+                'matches.MatchTime',
+                'matches.HomeUp',
+                'matches.HdpGoal',
+                'matches.HdpUnit',
+                'matches.GpGoal',
+                'matches.GpUnit',
+                'matches.HomeGoal',
+                'matches.AwayGoal',
+                'matches.League'
             )
             ->get();
     
@@ -256,19 +244,17 @@ class BetController extends Controller
             'accumulator_entries' => $accumulator_entries->map(function ($entry) {
                 return [
                     'selected_outcome' => $entry->selected_outcome,
-                    'league_name' => $entry->league_name,
-                    'home_match' => $entry->home_match,
-                    'away_match' => $entry->away_match,
-                    'match_time' => $entry->match_time,
-                    'special_odd_team' => $entry->special_odd_team,
-                    'special_odd_first_digit' => $entry->special_odd_first_digit,
-                    'special_odd_sign' => $entry->special_odd_sign,
-                    'special_odd_last_digit' => $entry->special_odd_last_digit,
-                    'over_under_first_digit' => $entry->over_under_first_digit,
-                    'over_under_sign' => $entry->over_under_sign,
-                    'over_under_last_digit' => $entry->over_under_last_digit,
-                    'home_goals' => $entry->home_goals,
-                    'away_goals' => $entry->away_goals,
+                    'league_name' => $entry->League,
+                    'home_match' => $entry->HomeTeam,
+                    'away_match' => $entry->AwayTeam,
+                    'match_time' => $entry->MatchTime,
+                    'HomeUp'=>$entry->HomeUp,
+                    'HdpGoal' => $entry->HdpGoal,
+                    'HdpUnit' => $entry->HdpUnit,
+                    'GpGoal' => $entry->GpGoal,
+                    'GpUnit' => $entry->GpUnit,
+                    'home_goals' => $entry->HomeGoal,
+                    'away_goals' => $entry->AwayGoal,
                 ];
             }),
         ];
