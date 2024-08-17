@@ -76,7 +76,7 @@ class MatchesController extends Controller
             );
         }
     
-        return response()->json(['status' => 'success']);
+        return response()->json(['status' => 'success'],200);
     }
     public function updateGoals(Request $request)
     {
@@ -102,7 +102,7 @@ class MatchesController extends Controller
                 );
                 event(new MatchFinished($match));
 
-                return response()->json(['message' => 'hello', 'reason' => 'The match has ended.']);
+                return response()->json(['message' => 'hello', 'reason' => 'The match has ended.'],200);
             }
     
             if ($matchData['IsPost'] === true) {
