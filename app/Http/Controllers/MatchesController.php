@@ -85,8 +85,13 @@ class MatchesController extends Controller
         $data = $request->all();
         
         foreach ($data as $matchData) {
-            $matchTime = Carbon::parse($matchData['MatchTime']);
+            // Ensure required fields are present before proceeding
+            if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
+                return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
+            }
     
+            $matchTime = Carbon::parse($matchData['MatchTime']);
+            
             if ($matchData['IsEnd'] === true) {
                 $match = Matches::updateOrCreate(
                     [
@@ -95,16 +100,16 @@ class MatchesController extends Controller
                         'MatchTime' => $matchData['MatchTime'],
                     ],
                     [
-                        'League' => $matchData['League'],
+                        'League' => $matchData['League'] ?? null,
                         'HomeGoal' => $matchData['HomeGoal'],
                         'AwayGoal' => $matchData['AwayGoal'],
                         'IsEnd' => true,
-                        'IsPost' => $matchData['IsPost']
+                        'IsPost' => $matchData['IsPost'] ?? false
                     ]
                 );
                 event(new MatchFinished($match));
-
-                return response()->json(['message' => 'hello', 'reason' => 'The match has ended.'],200);
+    
+                return response()->json(['message' => 'Match has ended.', 'reason' => 'The match has ended.'], 200);
             }
     
             if ($matchData['IsPost'] === true) {
@@ -115,7 +120,7 @@ class MatchesController extends Controller
                         'MatchTime' => $matchData['MatchTime'],
                     ],
                     [
-                        'League' => $matchData['League'],
+                        'League' => $matchData['League'] ?? null,
                         'HomeGoal' => $matchData['HomeGoal'],
                         'AwayGoal' => $matchData['AwayGoal'],
                         'IsEnd' => false,
@@ -128,18 +133,19 @@ class MatchesController extends Controller
             }
     
             Matches::where([
-                ['home_team', $matchData['HomeTeam']],
-                ['away_team', $matchData['AwayTeam']],
-                ['MatchTime' => $matchData['MatchTime']],
+                ['HomeTeam', $matchData['HomeTeam']],
+                ['AwayTeam', $matchData['AwayTeam']],
+                ['MatchTime', $matchData['MatchTime']],
                 ['IsEnd', false]
             ])->update([
-                'home_goal' => $matchData['HomeGoal'],
-                'away_goal' => $matchData['AwayGoal'],
+                'HomeGoal' => $matchData['HomeGoal'],
+                'AwayGoal' => $matchData['AwayGoal'],
                 'IsPost' => $matchData['IsPost']
             ]);
         }
     
-        return response()->json(['status' => 'success'],200);
+        return response()->json(['status' => 'success'], 200);
     }
+    
     
 }
