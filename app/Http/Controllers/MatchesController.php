@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\MatchFinished;
+use App\Events\MatchPostponed;
 use App\Models\Accumulator;
 use App\Models\Matches;
 use App\Services\PayoutService;
@@ -51,13 +52,12 @@ class MatchesController extends Controller
         $data = $request->all();
         
         foreach ($data as $matchData) {
-            $matchTime = Carbon::parse($matchData['MatchTime']);
     
             Matches::updateOrCreate(
                 [
                     'HomeTeam' => $matchData['HomeTeam'],
                     'AwayTeam' => $matchData['AwayTeam'],
-                    'MatchTime' => $matchTime,
+                    'MatchTime' => $matchData['MatchTime'],
                     'IsEnd' => false
                 ],
                 [
@@ -90,7 +90,7 @@ class MatchesController extends Controller
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
                         'AwayTeam' => $matchData['AwayTeam'],
-                        'MatchTime' => $matchTime
+                        'MatchTime' => $matchData['MatchTime'],
                     ],
                     [
                         'League' => $matchData['League'],
@@ -110,7 +110,7 @@ class MatchesController extends Controller
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
                         'AwayTeam' => $matchData['AwayTeam'],
-                        'MatchTime' => $matchTime
+                        'MatchTime' => $matchData['MatchTime'],
                     ],
                     [
                         'League' => $matchData['League'],
@@ -120,7 +120,7 @@ class MatchesController extends Controller
                         'IsPost' => true
                     ]
                 );
-                // event(new MatchPostponed($match));
+                event(new MatchPostponed($match));
     
                 return response()->json(['status' => 'success', 'message' => 'Match postponed and event triggered'], 200);
             }
@@ -128,7 +128,7 @@ class MatchesController extends Controller
             Matches::where([
                 ['home_team', $matchData['HomeTeam']],
                 ['away_team', $matchData['AwayTeam']],
-                ['match_time', $matchTime],
+                ['MatchTime' => $matchData['MatchTime']],
                 ['IsEnd', false]
             ])->update([
                 'home_goal' => $matchData['HomeGoal'],
