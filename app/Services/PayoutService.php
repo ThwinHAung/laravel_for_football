@@ -82,7 +82,7 @@ class PayoutService
             $bet->status = 'Lose';
             $bet->save();
         }
-        // $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $leagueName);
+        $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $match->league);
     }
 
     protected function calculatePotentialWinningAmount(Bets $bet,Matches $match){
@@ -354,92 +354,92 @@ class PayoutService
             return 0.0; 
         }
     }
- // Function to get the single commission recipient and distribute the remaining commission up the hierarchy
-    // private function getSingleCommissionRecipient($userId, $commissionType, $remainingCommission)
-    // {
-    //     $user = User::find($userId);
-    //     $userCommissionRate = SingleCommissions::where('user_id', $userId)->value($commissionType);
+//  Function to get the single commission recipient and distribute the remaining commission up the hierarchy
+    private function getSingleCommissionRecipient($userId, $commissionType, $remainingCommission)
+    {
+        $user = User::find($userId);
+        $userCommissionRate = SingleCommissions::where('user_id', $userId)->value($commissionType);
 
-    //     if ($userCommissionRate >= $remainingCommission) {
-    //         return ['user' => $user, 'commission' => $remainingCommission];
-    //     }
+        if ($userCommissionRate >= $remainingCommission) {
+            return ['user' => $user, 'commission' => $remainingCommission];
+        }
 
-    //     // Allocate the user's commission and reduce the remaining commission
-    //     $allocatedCommission = $userCommissionRate;
-    //     $remainingCommission -= $allocatedCommission;
+        // Allocate the user's commission and reduce the remaining commission
+        $allocatedCommission = $userCommissionRate;
+        $remainingCommission -= $allocatedCommission;
 
-    //     if ($user->created_by !== null && $remainingCommission > 0) {
-    //         // Pass the remaining commission up the hierarchy
-    //         return $this->getSingleCommissionRecipient($user->created_by, $commissionType, $remainingCommission);
-    //     }
+        if ($user->created_by !== null && $remainingCommission > 0) {
+            // Pass the remaining commission up the hierarchy
+            return $this->getSingleCommissionRecipient($user->created_by, $commissionType, $remainingCommission);
+        }
 
-    //     return ['user' => $user, 'commission' => $allocatedCommission];
-    // }
+        return ['user' => $user, 'commission' => $allocatedCommission];
+    }
 
-// // Function to get the accumulator commission recipient and distribute the remaining commission up the hierarchy
-//     private function getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission)
-//     {
-//         $user = User::find($userId);
-//         $userCommissionRate = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
+// Function to get the accumulator commission recipient and distribute the remaining commission up the hierarchy
+    private function getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission)
+    {
+        $user = User::find($userId);
+        $userCommissionRate = MixBetCommissions::where('user_id', $userId)->value('m' . $matchCount);
 
-//         if ($userCommissionRate >= $remainingCommission) {
-//             return ['user' => $user, 'commission' => $remainingCommission];
-//         }
+        if ($userCommissionRate >= $remainingCommission) {
+            return ['user' => $user, 'commission' => $remainingCommission];
+        }
 
-//         // Allocate the user's commission and reduce the remaining commission
-//         $allocatedCommission = $userCommissionRate;
-//         $remainingCommission -= $allocatedCommission;
+        // Allocate the user's commission and reduce the remaining commission
+        $allocatedCommission = $userCommissionRate;
+        $remainingCommission -= $allocatedCommission;
 
-//         if ($user->created_by !== null && $remainingCommission > 0) {
-//             // Pass the remaining commission up the hierarchy
-//             return $this->getAccumulatorCommissionRecipient($user->created_by, $matchCount, $remainingCommission);
-//         }
+        if ($user->created_by !== null && $remainingCommission > 0) {
+            // Pass the remaining commission up the hierarchy
+            return $this->getAccumulatorCommissionRecipient($user->created_by, $matchCount, $remainingCommission);
+        }
 
-//         return ['user' => $user, 'commission' => $allocatedCommission];
-//     }
+        return ['user' => $user, 'commission' => $allocatedCommission];
+    }
 
 // Function to calculate the single bet commission
-    // public function calculateSingleBetCommission($userId, $betAmount, $league)
-    // {
-    //     $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
-    //     $isHigh = in_array($league, $topLeagues);
+    public function calculateSingleBetCommission($userId, $betAmount, $league)
+    {
+        $topLeagues = ['England Premier League', 'Spain La Liga', 'Italy Serie A', 'German Bundesliga', 'France Ligue 1', 'Champions League'];
+        $isHigh = in_array($league, $topLeagues);
 
-    //     $commissionType = $isHigh ? 'high' : 'low';
-    //     $remainingCommission = 0.02 * $betAmount;  // Constant rate is 2%
+        $commissionType = $isHigh ? 'high' : 'low';
+        $remainingCommission = 0.02 * $betAmount;  // Constant rate is 2%
 
-    //     $commissionData = $this->getSingleCommissionRecipient($userId, $commissionType, $remainingCommission);
+        $commissionData = $this->getSingleCommissionRecipient($userId, $commissionType, $remainingCommission);
 
-    //     if ($commissionData['user']) {
-    //         $commissionData['user']->balance += $commissionData['commission'];
-    //         $commissionData['user']->save();
+        if ($commissionData['user']) {
+            $commissionData['user']->balance += $commissionData['commission'];
+            $commissionData['user']->save();
 
-    //         return $commissionData['commission'];
-    //     }
+            return $commissionData['commission'];
+        }
 
-    //     return 0;
-    // }
+        return 0;
+    }
 
 // Function to calculate the accumulator bet commission
-    // public function calculateAccumulatorBetCommission($userId, $betAmount, $matchCount)
-    // {
-    //     $commissionRate = ($matchCount == 2) ? 0.07 : 0.15;
-    //     $remainingCommission = $commissionRate * $betAmount;
+    public function calculateAccumulatorBetCommission($userId, $betAmount, $matchCount)
+    {
+        $commissionRate = ($matchCount == 2) ? 0.07 : 0.15;
+        $remainingCommission = $commissionRate * $betAmount;
 
-    //     $commissionData = $this->getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission);
+        $commissionData = $this->getAccumulatorCommissionRecipient($userId, $matchCount, $remainingCommission);
 
-    //     if ($commissionData['user']) {
-    //         $commissionData['user']->balance += $commissionData['commission'];
-    //         $commissionData['user']->save();
+        if ($commissionData['user']) {
+            $commissionData['user']->balance += $commissionData['commission'];
+            $commissionData['user']->save();
 
-    //         Log::info('Accumulator bet commission calculated', [
-    //             'user_id' => $userId,
-    //             'commission_user_id' => $commissionData['user']->id,
-    //             'commission_amount' => $commissionData['commission'],
-    //         ]);
+            Log::info('Accumulator bet commission calculated', [
+                'user_id' => $userId,
+                'commission_user_id' => $commissionData['user']->id,
+                'commission_amount' => $commissionData['commission'],
+            ]);
 
-    //         return $commissionData['commission'];
-    //     }
+            return $commissionData['commission'];
+        }
 
-    //     return 0;
-    // }
+        return 0;
+    }
 }

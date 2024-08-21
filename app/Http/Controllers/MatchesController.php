@@ -92,9 +92,7 @@ class MatchesController extends Controller
             if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
                 return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
-    
-            $matchTime = Carbon::parse($matchData['MatchTime']);
-            
+
             if ($matchData['IsEnd'] === true) {
                 $match = Matches::updateOrCreate(
                     [
