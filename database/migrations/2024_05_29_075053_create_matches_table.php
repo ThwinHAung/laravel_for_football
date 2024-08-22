@@ -30,6 +30,7 @@ return new class extends Migration
             $table->integer('AwayGoal')->default(0);
             $table->boolean('IsEnd')->default(False);
             $table->boolean('IsPost')->default(False);
+            $table->boolean('high')->default(False);
             $table->timestamps();
     });
 

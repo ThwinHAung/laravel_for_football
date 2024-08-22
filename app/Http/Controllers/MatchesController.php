@@ -19,10 +19,12 @@ class MatchesController extends Controller
     public function retrieve_match()
     {
         $current_time = now()->timezone('Asia/Yangon'); 
-        $pending_matches = Matches::where('IsEnd', False)
-            ->where('MatchTime', '>', $current_time) 
-            ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp')
-            ->get();
+
+        $pending_matches = Matches::where('IsEnd', false)
+        ->where('IsPost', false)
+        ->where('MatchTime', '>', $current_time) 
+        ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp')
+        ->get();
     
         return response()->json($pending_matches, 200);
     }
@@ -54,9 +56,11 @@ class MatchesController extends Controller
     public function updateMatches(Request $request)
     {
         $data = $request->all();
-        
+        // $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
+
         foreach ($data as $matchData) {
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
+                // $high = in_array($matchData['League'] ?? '', $topLeagues);
                 Matches::updateOrCreate(
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
@@ -75,7 +79,8 @@ class MatchesController extends Controller
                         'HomeUp' => $matchData['HomeUp'] ?? null,
                         'HomeGoal' => $matchData['HomeGoal'] ?? null,
                         'AwayGoal' => $matchData['AwayGoal'] ?? null,
-                        'IsEnd' => false
+                        'IsEnd' => false,
+                        // 'high' => $high
                     ]
                 );
             }
@@ -86,12 +91,15 @@ class MatchesController extends Controller
     }
     public function updateGoals(Request $request)
     {
+
         $data = $request->all();
-        
+        Log::info('*****Goal Update*****:', $data);
+        // $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
         foreach ($data as $matchData) {
             if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
                 return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
+            // $high = in_array($matchData['League'] ?? '', $topLeagues);
 
             if ($matchData['IsEnd'] === true) {
                 $match = Matches::updateOrCreate(
@@ -105,12 +113,13 @@ class MatchesController extends Controller
                         'HomeGoal' => $matchData['HomeGoal'],
                         'AwayGoal' => $matchData['AwayGoal'],
                         'IsEnd' => true,
-                        'IsPost' => $matchData['IsPost'] ?? false
+                        'IsPost' => $matchData['IsPost'] ?? false,
+                        // 'high' => $high
                     ]
                 );
                 event(new MatchFinished($match));
     
-                return response()->json(['message' => 'Match has ended.', 'reason' => 'The match has ended.'], 200);
+                return response()->json(['message' => 'Success'], 200);
             }
     
             if ($matchData['IsPost'] === true) {
@@ -125,12 +134,13 @@ class MatchesController extends Controller
                         'HomeGoal' => $matchData['HomeGoal'],
                         'AwayGoal' => $matchData['AwayGoal'],
                         'IsEnd' => false,
-                        'IsPost' => true
+                        'IsPost' => true,
+                        // 'high' => $high
                     ]
                 );
                 event(new MatchPostponed($match));
     
-                return response()->json(['status' => 'success', 'message' => 'Match postponed and event triggered'], 200);
+                return response()->json(['message' => 'Success'], 200);
             }
     
             Matches::where([
@@ -141,11 +151,12 @@ class MatchesController extends Controller
             ])->update([
                 'HomeGoal' => $matchData['HomeGoal'],
                 'AwayGoal' => $matchData['AwayGoal'],
-                'IsPost' => $matchData['IsPost']
+                'IsPost' => $matchData['IsPost'],
+                // 'high' => $high,
             ]);
         }
     
-        return response()->json(['status' => 'success'], 200);
+                return response()->json(['message' => 'Success'], 200);
     }
     
     

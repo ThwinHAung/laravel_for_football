@@ -67,34 +67,7 @@ class StatusController extends Controller
     public function member_count() {
         $userId = auth()->user()->id;
 
-        $userCount = DB::select("
-            WITH RECURSIVE UserHierarchy AS (
-                SELECT 
-                    id,
-                    created_by
-                FROM 
-                    users
-                WHERE 
-                    created_by = ? -- Start with the children of the current user
-                
-                UNION ALL
-                
-                SELECT 
-                    u.id,
-                    u.created_by
-                FROM 
-                    users u
-                INNER JOIN 
-                    UserHierarchy uh 
-                    ON u.created_by = uh.id
-            )
-            SELECT 
-                COUNT(*) AS total_user_count
-            FROM 
-                UserHierarchy;
-        ", [$userId]);
-
-        $userCount = $userCount[0]->total_user_count ?? 0;
+        $userCount = User::where('created_by', $userId)->count();
 
         return response()->json(["userCount" => $userCount], 200);
     }
@@ -103,9 +76,11 @@ class StatusController extends Controller
         $authUser = Auth::user();
         $authUserId = $authUser->id;
         $role = $authUser->role->name;
-
-        // Determine the query based on the role of the authenticated user
-        $totalBalance = DB::select("
+        if($role == 'Agent' || $role == 'Master'){
+            $totalBalance = User::where('created_by', $authUserId)->sum('balance');
+            return response()->json(["downlineBalance"=>$totalBalance],200);
+        }else{
+            $totalBalance = DB::select("
             WITH RECURSIVE UserHierarchy AS (
                 SELECT 
                     id,
@@ -114,8 +89,8 @@ class StatusController extends Controller
                 FROM 
                     users
                 WHERE 
-                    created_by = ? -- Start with the children of the current user
-                
+                    id = ? -- Start with the current user
+                    
                 UNION ALL
                 
                 SELECT 
@@ -133,69 +108,27 @@ class StatusController extends Controller
             FROM 
                 UserHierarchy;
         ", [$authUserId]);
-
+    
         $totalBalance = $totalBalance[0]->total_balance ?? 0;
-
-        return response()->json([
-            'downlineBalance' => $totalBalance
-        ],200);
-        // $userId = auth()->user()->id;
-        // $totalBalance = User::where('created_by', $userId)->sum('balance');
-        // return response()->json(["downlineBalance"=>$totalBalance],200);
+        return response()->json(['downlineBalance' => $totalBalance], 200);
+        }
     }
     
 
     public function outstanding_balance() {
         $userId = auth()->user()->id;
         $today = Carbon::today()->toDateString();
-
-        $totalBetAmountToday = DB::select("
-            WITH RECURSIVE UserHierarchy AS (
-                SELECT 
-                    id,
-                    created_by
-                FROM 
-                    users
-                WHERE 
-                    created_by = ? -- Start with the children of the current user
-                
-                UNION ALL
-                
-                SELECT 
-                    u.id,
-                    u.created_by
-                FROM 
-                    users u
-                INNER JOIN 
-                    UserHierarchy uh 
-                    ON u.created_by = uh.id
-            )
-            SELECT 
-                SUM(bets.amount) AS total_bet_amount
-            FROM 
-                bets
-            INNER JOIN 
-                UserHierarchy uh 
-                ON bets.user_id = uh.id
-            WHERE 
-                bets.status = 'Accepted' 
-                AND DATE(bets.created_at) = ?
-        ", [$userId, $today]);
-
-        $totalBetAmountToday = $totalBetAmountToday[0]->total_bet_amount ?? 0;
-
+    
+        $totalBetAmountToday = DB::table('bets')
+            ->join('users', 'bets.user_id', '=', 'users.id')
+            ->where('users.created_by', $userId)
+            ->where('bets.status', 'Accepted')
+            ->whereDate('bets.created_at', $today)
+            ->sum('bets.amount');
+    
+        $totalBetAmountToday = $totalBetAmountToday ?? 0;
+    
         return response()->json(["outstandingBalance" => $totalBetAmountToday], 200);
-        // $userId = auth()->user()->id;
-        // $today = Carbon::today()->toDateString();
-    
-        // $totalBetAmountToday = DB::table('bets')
-        //                          ->join('users', 'bets.user_id', '=', 'users.id')
-        //                          ->where('users.created_by', $userId)
-        //                          ->where('bets.status', 'Accepted')
-        //                          ->whereDate('bets.created_at', $today)
-        //                          ->sum('bets.amount');
-    
-        // return response()->json(["outstandingBalance" => $totalBetAmountToday], 200);
     }
     
     
