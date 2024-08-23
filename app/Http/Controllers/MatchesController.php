@@ -47,12 +47,7 @@ class MatchesController extends Controller
 
         foreach ($data as $matchData) {
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
-                $league = $matchData['League'] ?? '';
                 $high = in_array($matchData['League'] ?? '', $topLeagues);
-                Log::info('Processing Match:', [
-                    'League' => $league,
-                    'High' => $high
-                ]);
                 Matches::updateOrCreate(
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
