@@ -23,7 +23,8 @@ class Matches extends Model
         'HomeGoal',
         'AwayGoal',
         'IsEnd',
-        'IsPost'
+        'IsPost',
+        'high'
     ];
     public function accumulators()
     {

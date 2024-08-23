@@ -82,7 +82,7 @@ class PayoutService
             $bet->status = 'Lose';
             $bet->save();
         }
-        $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $match->league);
+        // $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $match->league);
     }
 
     protected function calculatePotentialWinningAmount(Bets $bet,Matches $match){
@@ -448,35 +448,35 @@ class PayoutService
     //     }
     // }
     
-    public function calculateSingleBetCommission($userId, $amount, $leagueName) {
-        $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-        $commissionType = in_array($leagueName, $topLeagues) ? 'high' : 'low';
-        $remainingRate = 2.0; // This is the constant rate
+    // public function calculateSingleBetCommission($userId, $amount, $leagueName) {
+    //     $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
+    //     $commissionType = in_array($leagueName, $topLeagues) ? 'high' : 'low';
+    //     $remainingRate = 2.0; // This is the constant rate
     
-        while ($remainingRate > 0) {
-            $commission = SingleCommissions::where('user_id', $userId)->first();
-            $userCommissionRate = $commissionType === 'high' ? $commission->high : $commission->low;
+    //     while ($remainingRate > 0) {
+    //         $commission = SingleCommissions::where('user_id', $userId)->first();
+    //         $userCommissionRate = $commissionType === 'high' ? $commission->high : $commission->low;
     
-            if ($userCommissionRate > 0) {
-                // Calculate the amount the current user should get after giving to their child
-                $commissionToGive = min($userCommissionRate, $remainingRate);
-                $commissionAmount = $amount * ($commissionToGive / 100);
+    //         if ($userCommissionRate > 0) {
+    //             // Calculate the amount the current user should get after giving to their child
+    //             $commissionToGive = min($userCommissionRate, $remainingRate);
+    //             $commissionAmount = $amount * ($commissionToGive / 100);
     
-                // Update the user's balance with the calculated commission amount
-                $this->updateUserBalance($userId, $commissionAmount);
+    //             // Update the user's balance with the calculated commission amount
+    //             $this->updateUserBalance($userId, $commissionAmount);
     
-                // Decrease the remaining rate by the amount given to the current user
-                $remainingRate -= $userCommissionRate;
-            }
+    //             // Decrease the remaining rate by the amount given to the current user
+    //             $remainingRate -= $userCommissionRate;
+    //         }
     
-            // Get the parent user's ID and continue the loop with the parent
-            $user = User::find($userId);
-            if (!$user) {
-                break; // Stop the loop if there is no more parent user
-            }
-            $userId = $user->created_by;
-        }
-    }
+    //         // Get the parent user's ID and continue the loop with the parent
+    //         $user = User::find($userId);
+    //         if (!$user) {
+    //             break; // Stop the loop if there is no more parent user
+    //         }
+    //         $userId = $user->created_by;
+    //     }
+    // }
     
 
 }

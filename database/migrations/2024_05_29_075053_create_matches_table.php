@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('Gp')->nullable();
             $table->integer('GpGoal')->nullable();
             $table->integer('GpUnit')->nullable();
-            $table->boolean('HomeUp')->default(true);
+            $table->boolean('HomeUp')->nullable();
             $table->integer('HomeGoal')->default(0);
             $table->integer('AwayGoal')->default(0);
             $table->boolean('IsEnd')->default(False);

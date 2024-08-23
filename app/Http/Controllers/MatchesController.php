@@ -28,19 +28,6 @@ class MatchesController extends Controller
     
         return response()->json($pending_matches, 200);
     }
-    
-    public function deleteMatch(Request $request)
-    {
-
-        $match = Matches::find($request->match_id);
-        if (!$match) {
-            return response()->json(['message' => 'Match not found'], 404);
-        }
-
-        $match->delete();
-
-        return response()->json(['message' => 'Match deleted successfully'], 200);
-    }
       public function matchHistory()
     {
         $endOfToday = Carbon::tomorrow()->subSecond();
@@ -56,11 +43,16 @@ class MatchesController extends Controller
     public function updateMatches(Request $request)
     {
         $data = $request->all();
-        // $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
+        $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
 
         foreach ($data as $matchData) {
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
-                // $high = in_array($matchData['League'] ?? '', $topLeagues);
+                $league = $matchData['League'] ?? '';
+                $high = in_array($matchData['League'] ?? '', $topLeagues);
+                Log::info('Processing Match:', [
+                    'League' => $league,
+                    'High' => $high
+                ]);
                 Matches::updateOrCreate(
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
@@ -80,7 +72,7 @@ class MatchesController extends Controller
                         'HomeGoal' => $matchData['HomeGoal'] ?? null,
                         'AwayGoal' => $matchData['AwayGoal'] ?? null,
                         'IsEnd' => false,
-                        // 'high' => $high
+                        'high' => (bool) $high
                     ]
                 );
             }
@@ -93,13 +85,15 @@ class MatchesController extends Controller
     {
 
         $data = $request->all();
-        Log::info('*****Goal Update*****:', $data);
-        // $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
+        $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
         foreach ($data as $matchData) {
             if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
                 return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
-            // $high = in_array($matchData['League'] ?? '', $topLeagues);
+
+            $high = in_array($matchData['League'] ?? '', $topLeagues);
+
+
 
             if ($matchData['IsEnd'] === true) {
                 $match = Matches::updateOrCreate(
@@ -114,7 +108,7 @@ class MatchesController extends Controller
                         'AwayGoal' => $matchData['AwayGoal'],
                         'IsEnd' => true,
                         'IsPost' => $matchData['IsPost'] ?? false,
-                        // 'high' => $high
+                        'high' => $high
                     ]
                 );
                 event(new MatchFinished($match));
@@ -135,7 +129,7 @@ class MatchesController extends Controller
                         'AwayGoal' => $matchData['AwayGoal'],
                         'IsEnd' => false,
                         'IsPost' => true,
-                        // 'high' => $high
+                        'high' => $high
                     ]
                 );
                 event(new MatchPostponed($match));
@@ -152,7 +146,7 @@ class MatchesController extends Controller
                 'HomeGoal' => $matchData['HomeGoal'],
                 'AwayGoal' => $matchData['AwayGoal'],
                 'IsPost' => $matchData['IsPost'],
-                // 'high' => $high,
+                'high' => $high,
             ]);
         }
     
