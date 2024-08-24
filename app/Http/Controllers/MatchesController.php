@@ -78,8 +78,8 @@ class MatchesController extends Controller
     }
     public function updateGoals(Request $request)
     {
-
         $data = $request->all();
+        Log::info('goal socre' .$data);
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
         foreach ($data as $matchData) {
             if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
