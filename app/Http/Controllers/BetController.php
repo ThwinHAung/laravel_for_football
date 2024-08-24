@@ -37,7 +37,7 @@ class BetController extends Controller
                 'selected_outcome'=>$request->selected_outcome,
                 'amount'=>$request->amount,
             ]);
-            Log::info('Bet placed at: ' . now());
+
 
             $User->balance -= $request->amount;
             $User->save();
