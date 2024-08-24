@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 
@@ -22,7 +23,7 @@ class Handler extends ExceptionHandler
      * @var array<int, class-string<\Throwable>>
      */
     protected $dontReport = [
-        //
+        \League\OAuth2\Server\Exception\OAuthServerException::class,
     ];
 
     /**
@@ -47,4 +48,12 @@ class Handler extends ExceptionHandler
             //
         });
     }
+    public function report(Throwable $e)
+    {
+        if ($e instanceof \League\OAuth2\Server\Exception\OAuthServerException && $e->getCode() === 9) {
+            return;
+        }
+        parent::report($e);
+    }
+
 }
