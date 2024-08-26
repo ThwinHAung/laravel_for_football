@@ -79,17 +79,15 @@ class MatchesController extends Controller
     public function updateGoals(Request $request)
     {
         $data = $request->all();
-        Log::info('goal socre' .json_encode($data));
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
+    
         foreach ($data as $matchData) {
             if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
                 return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
-
+    
             $high = in_array($matchData['League'] ?? '', $topLeagues);
-
-
-
+    
             if ($matchData['IsEnd'] === true) {
                 $match = Matches::updateOrCreate(
                     [
@@ -108,7 +106,7 @@ class MatchesController extends Controller
                 );
                 event(new MatchFinished($match));
     
-                return response()->json(['message' => 'Success'], 200);
+                return response()->json(['status' => 'success'],200);
             }
     
             if ($matchData['IsPost'] === true) {
@@ -129,24 +127,11 @@ class MatchesController extends Controller
                 );
                 event(new MatchPostponed($match));
     
-                return response()->json(['message' => 'Success'], 200);
+                return response()->json(['status' => 'success'],200);
             }
-    
-            Matches::where([
-                ['HomeTeam', $matchData['HomeTeam']],
-                ['AwayTeam', $matchData['AwayTeam']],
-                ['MatchTime', $matchData['MatchTime']],
-                ['IsEnd', false]
-            ])->update([
-                'HomeGoal' => $matchData['HomeGoal'],
-                'AwayGoal' => $matchData['AwayGoal'],
-                'IsPost' => $matchData['IsPost'],
-                'high' => $high,
-            ]);
         }
-    
-                return response()->json(['message' => 'Success'], 200);
     }
+    
     
     
 }

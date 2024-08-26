@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Events\MatchFinished;
+use App\Events\MatchPostponed;
+use App\Listeners\postpone;
 use App\Listeners\ProcessPayouts;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -23,7 +25,10 @@ class EventServiceProvider extends ServiceProvider
         ],
         MatchFinished::class => [
             ProcessPayouts::class,
-        ]
+        ],
+        MatchPostponed::class => [
+            postpone::class,
+        ],
     ];
 
 

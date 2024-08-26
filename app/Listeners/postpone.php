@@ -15,7 +15,7 @@ class postpone
      * @return void
      */
     protected $postponeService;
-    public function __construct(postponeService $postponeService)
+    public function __construct(PostponeService $postponeService)
     {
         //
         $this->postponeService = $postponeService;

@@ -287,13 +287,14 @@ class PayoutService
             }
         }
     }
-    protected function allMatchesCompleted($betId)
-    {
+    protected function allMatchesCompleted($betId) {
         $count = Accumulator::where('bet_id', $betId)
             ->whereHas('match', function($query) {
-                $query->where('status', '!=', 'completed');
+                $query->where('IsEnd', false)
+                      ->where('IsPost', false);
             })
             ->count();
+    
         return $count == 0;
     }
 
