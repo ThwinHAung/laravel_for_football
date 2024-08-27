@@ -73,6 +73,7 @@ class MatchesController extends Controller
             }
         }
         
+    
         return response()->json(['status' => 'success'],200);
     }
     public function updateGoals(Request $request)
@@ -81,7 +82,7 @@ class MatchesController extends Controller
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
     
         foreach ($data as $matchData) {
-            if (!isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
+            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
                 return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
     
