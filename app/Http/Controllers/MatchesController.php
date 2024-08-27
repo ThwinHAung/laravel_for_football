@@ -80,12 +80,22 @@ class MatchesController extends Controller
     {
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-        Log::info('Match data:', $data);
-        foreach ($data as $matchData) {
-
-            // Check if required fields are present
-            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'],$matchData['HomeGoal'],$matchData['AwayGoal'],$matchData['IsEnd'],$matchData['IsPost'])) {
-                
+    
+        foreach ($data as $key => $matchData) {
+            // Skip any non-numeric keys (like '/v4N1/upload_goals')
+            if (!is_numeric($key)) {
+                continue;
+            }
+    
+            // Check if all required fields are present
+            if (array_key_exists('HomeTeam', $matchData) && 
+                array_key_exists('AwayTeam', $matchData) && 
+                array_key_exists('MatchTime', $matchData) && 
+                array_key_exists('HomeGoal', $matchData) && 
+                array_key_exists('AwayGoal', $matchData) && 
+                array_key_exists('IsEnd', $matchData) && 
+                array_key_exists('IsPost', $matchData)) {
+    
                 $high = in_array($matchData['League'] ?? '', $topLeagues);
     
                 $matchAttributes = [
@@ -119,6 +129,7 @@ class MatchesController extends Controller
     
         return response()->json(['status' => 'success'], 200);
     }
+    
     
     
     
