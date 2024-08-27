@@ -82,6 +82,8 @@ class MatchesController extends Controller
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
     
         foreach ($data as $matchData) {
+            Log::info('Match data:', $matchData);
+
             // Check if required fields are present
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'],$matchData['HomeGoal'],$matchData['AwayGoal'],$matchData['IsEnd'],$matchData['IsPost'])) {
                 
