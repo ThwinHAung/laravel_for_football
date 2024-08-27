@@ -83,9 +83,7 @@ class MatchesController extends Controller
     
         foreach ($data as $matchData) {
             // Check if required fields are present
-            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime']) &&
-                isset($matchData['HomeGoal']) && isset($matchData['AwayGoal']) &&
-                isset($matchData['IsEnd']) && isset($matchData['IsPost'])) {
+            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'],$matchData['HomeGoal'],$matchData['AwayGoal'],$matchData['IsEnd'],$matchData['IsPost'])) {
                 
                 $high = in_array($matchData['League'] ?? '', $topLeagues);
     
