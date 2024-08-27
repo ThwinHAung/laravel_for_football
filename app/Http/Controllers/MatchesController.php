@@ -45,6 +45,7 @@ class MatchesController extends Controller
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
 
+        Log::info('Match data:', $data);
         foreach ($data as $matchData) {
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
                 $high = in_array($matchData['League'] ?? '', $topLeagues);
