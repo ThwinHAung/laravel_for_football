@@ -105,8 +105,6 @@ class MatchesController extends Controller
                     ]
                 );
                 event(new MatchFinished($match));
-    
-                return response()->json(['status' => 'success'],200);
             }
     
             if ($matchData['IsPost'] === true) {
@@ -127,9 +125,10 @@ class MatchesController extends Controller
                 );
                 event(new MatchPostponed($match));
     
-                return response()->json(['status' => 'success'],200);
+
             }
         }
+        return response()->json(['status' => 'success'],200);
     }
     
     
