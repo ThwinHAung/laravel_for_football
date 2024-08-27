@@ -44,11 +44,18 @@ class MatchesController extends Controller
     {
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-
+    
         Log::info('Match data:', $data);
+    
         foreach ($data as $matchData) {
+            // Skip invalid entries
+            if (!is_array($matchData)) {
+                continue;
+            }
+    
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
                 $high = in_array($matchData['League'] ?? '', $topLeagues);
+    
                 Matches::updateOrCreate(
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
@@ -73,10 +80,10 @@ class MatchesController extends Controller
                 );
             }
         }
-        
     
-        return response()->json(['status' => 'success'],200);
+        return response()->json(['status' => 'success'], 200);
     }
+    
     public function updateGoals(Request $request)
     {
         $data = $request->all();
