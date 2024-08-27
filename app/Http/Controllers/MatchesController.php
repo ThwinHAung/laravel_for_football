@@ -82,23 +82,22 @@ class MatchesController extends Controller
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
     
         foreach ($data as $matchData) {
-            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'], $matchData['HomeGoal'], $matchData['AwayGoal'], $matchData['IsEnd'], $matchData['IsPost'])) {
-                return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
-            }
+            // Check if required fields are present
+            if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime']) &&
+                isset($matchData['HomeGoal']) && isset($matchData['AwayGoal']) &&
+                isset($matchData['IsEnd']) && isset($matchData['IsPost'])) {
+                
+                $high = in_array($matchData['League'] ?? '', $topLeagues);
     
-            $high = in_array($matchData['League'] ?? '', $topLeagues);
+                $matchAttributes = [
+                    'League' => $matchData['League'] ?? null,
+                    'HomeGoal' => $matchData['HomeGoal'],
+                    'AwayGoal' => $matchData['AwayGoal'],
+                    'high' => $high,
+                    'IsEnd' => $matchData['IsEnd'],
+                    'IsPost' => $matchData['IsPost'],
+                ];
     
-            $matchAttributes = [
-                'League' => $matchData['League'] ?? null,
-                'HomeGoal' => $matchData['HomeGoal'],
-                'AwayGoal' => $matchData['AwayGoal'],
-                'high' => $high,
-                'IsEnd' => false,
-                'IsPost' => false,
-            ];
-    
-            if ($matchData['IsEnd'] === true) {
-                $matchAttributes['IsEnd'] = true;
                 $match = Matches::updateOrCreate(
                     [
                         'HomeTeam' => $matchData['HomeTeam'],
@@ -107,32 +106,21 @@ class MatchesController extends Controller
                     ],
                     $matchAttributes
                 );
-                event(new MatchFinished($match));
-            } elseif ($matchData['IsPost'] === true) {
-                $matchAttributes['IsPost'] = true;
-                $match = Matches::updateOrCreate(
-                    [
-                        'HomeTeam' => $matchData['HomeTeam'],
-                        'AwayTeam' => $matchData['AwayTeam'],
-                        'MatchTime' => $matchData['MatchTime'],
-                    ],
-                    $matchAttributes
-                );
-                event(new MatchPostponed($match));
+    
+                if ($matchData['IsEnd'] === true) {
+                    event(new MatchFinished($match));
+                } elseif ($matchData['IsPost'] === true) {
+                    event(new MatchPostponed($match));
+                }
+    
             } else {
-                $match = Matches::updateOrCreate(
-                    [
-                        'HomeTeam' => $matchData['HomeTeam'],
-                        'AwayTeam' => $matchData['AwayTeam'],
-                        'MatchTime' => $matchData['MatchTime'],
-                    ],
-                    $matchAttributes
-                );
+                return response()->json(['status' => 'error', 'message' => 'Missing required match data'], 400);
             }
         }
     
         return response()->json(['status' => 'success'], 200);
     }
+    
     
     
     
