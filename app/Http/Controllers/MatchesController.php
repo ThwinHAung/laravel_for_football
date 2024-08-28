@@ -23,7 +23,7 @@ class MatchesController extends Controller
         $pending_matches = Matches::where('IsEnd', false)
         ->where('IsPost', false)
         ->where('MatchTime', '>', $current_time) 
-        ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp')
+        ->select('matches.id','matches.MatchTime','matches.League', 'matches.HomeTeam','matches.AwayTeam','matches.HdpGoal','matches.HdpUnit','matches.GpGoal','matches.GpUnit','matches.HomeUp','matches.high')
         ->get();
     
         return response()->json($pending_matches, 200);
@@ -44,8 +44,6 @@ class MatchesController extends Controller
     {
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    
-
     
         foreach ($data as $matchData) {
             // Skip invalid entries
