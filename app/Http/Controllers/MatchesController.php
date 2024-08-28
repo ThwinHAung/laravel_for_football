@@ -45,7 +45,7 @@ class MatchesController extends Controller
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
     
-        Log::info('Match data:', $data);
+
     
         foreach ($data as $matchData) {
             // Skip invalid entries
@@ -88,7 +88,7 @@ class MatchesController extends Controller
     {
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    
+        Log::info('', $data);
         foreach ($data as $key => $matchData) {
             // Skip any non-numeric keys (like '/v4N1/upload_goals')
             if (!is_numeric($key)) {
@@ -135,7 +135,7 @@ class MatchesController extends Controller
             }
         }
     
-        return response()->json(['status' => 'success'], 200);
+        return response()->json(['status' => 'Goal socre success'], 200);
     }
     
     
