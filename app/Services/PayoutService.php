@@ -135,10 +135,10 @@ class PayoutService
         if ($HomeUp == true) {
             if ($goalDifference > $HdpGoal) {
                 return $amount * 2; 
-            } elseif ($goalDifference == $HdpGoal) {
-                return $amount * (1 + ($HdpUnit / 100)); 
             } elseif ($goalDifference == 0 && $HdpGoal == 0) {
                 return $amount * (1 + ($HdpUnit / 100)); 
+            }elseif ($goalDifference == $HdpGoal) {
+                return $amount * (1 + ($HdpUnit / 100));
             } else {
                 return 0; 
             }
@@ -147,10 +147,10 @@ class PayoutService
     
             if ($adjustedGoalDifference > $HdpGoal) {
                 return 0; 
-            } elseif ($adjustedGoalDifference == $HdpGoal) {
-                return $amount * (1 + ($HdpUnit / 100)); 
             } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
-                return $amount * (1 + ($HdpUnit / 100));
+                return $amount * (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
+            }elseif ($adjustedGoalDifference == $HdpGoal) {
+                return $amount * (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
             } else {
                 return $amount * 2; 
             }
@@ -164,11 +164,11 @@ class PayoutService
         if ($HomeUp == false) {
             if ($goalDifference > $HdpGoal) {
                 return $amount * 2; 
+            }elseif ($goalDifference == 0 && $HdpGoal == 0) {
+                return $amount * (1 + ($HdpUnit / 100)); 
             } elseif ($goalDifference == $HdpGoal) {
                 return $amount * (1 + ($HdpUnit / 100)); 
-            } elseif ($goalDifference == 0 && $HdpGoal == 0) {
-                return $amount * (1 + ($HdpUnit / 100)); 
-            } else {
+            }  else {
                 return 0; 
             }
         } elseif ($HomeUp == true) {
@@ -176,11 +176,12 @@ class PayoutService
     
             if ($adjustedGoalDifference > $HdpGoal) {
                 return 0; 
-            } elseif ($adjustedGoalDifference == $HdpGoal) {
-                return $amount * (1 + ($HdpUnit / 100)); 
             } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
-                return $amount * (1 + ($HdpUnit / 100)); 
-            } else {
+                return $amount * (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
+            }
+            elseif ($adjustedGoalDifference == $HdpGoal) {
+                return $amount * (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
+            }  else {
                 return $amount * 2; 
             }
         }
@@ -238,9 +239,9 @@ class PayoutService
         if ($HomeUp == true) {
             if ($goalDifference > $HdpGoal) {
                 return 2.0;
-            } elseif ($goalDifference == $HdpGoal) {
-                return (1.0 + ($HdpUnit / 100));
             } elseif ($goalDifference == 0 && $HdpGoal == 0) {
+                return (1.0 + ($HdpUnit / 100));
+            } elseif ($goalDifference == $HdpGoal) {
                 return (1.0 + ($HdpUnit / 100));
             } else {
                 return 0.0;
@@ -250,10 +251,10 @@ class PayoutService
     
             if ($adjustedGoalDifference > $HdpGoal) {
                 return 0.0;
-            } elseif ($adjustedGoalDifference == $HdpGoal) {
-                return (1.0 + ($HdpUnit / 100));
             } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
-                return (1.0 + ($HdpUnit / 100));
+                return (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
+            } elseif ($adjustedGoalDifference == $HdpGoal) {
+                return (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
             } else {
                 return 2.0;
             }
@@ -278,10 +279,10 @@ class PayoutService
     
             if ($adjustedGoalDifference > $HdpGoal) {
                 return 0.0;
-            } elseif ($adjustedGoalDifference == $HdpGoal) {
-                return (1.0 + ($HdpUnit / 100));
             } elseif ($adjustedGoalDifference == 0 && $HdpGoal == 0) {
-                return (1.0 + ($HdpUnit / 100));
+                return (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
+            } elseif ($adjustedGoalDifference == $HdpGoal) {
+                return (($HdpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($HdpUnit) / 100));
             } else {
                 return 2.0;
             }

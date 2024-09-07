@@ -86,7 +86,7 @@ class MatchesController extends Controller
     {
         $data = $request->all();
         $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-        Log::info('Goal score at ' . now(), $data);
+        // Log::info('Goal score at ' . now(), $data);
 
         foreach ($data as $key => $matchData) {
             // Skip any non-numeric keys (like '/v4N1/upload_goals')
