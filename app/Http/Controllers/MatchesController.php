@@ -56,13 +56,13 @@ class MatchesController extends Controller
     
                 Matches::updateOrCreate(
                     [
+                        'League'=>$matchData['League'],
                         'HomeTeam' => $matchData['HomeTeam'],
                         'AwayTeam' => $matchData['AwayTeam'],
                         'MatchTime' => $matchData['MatchTime'],
                         'IsEnd' => false
                     ],
                     [
-                        'League' => $matchData['League'] ?? null,
                         'Hdp' => $matchData['Hdp'] ?? null,
                         'HdpGoal' => $matchData['HdpGoal'] ?? null,
                         'HdpUnit' => $matchData['HdpUnit'] ?? null,
@@ -106,7 +106,6 @@ class MatchesController extends Controller
                 $high = in_array($matchData['League'] ?? '', $topLeagues);
     
                 $matchAttributes = [
-                    'League' => $matchData['League'] ?? null,
                     'HomeGoal' => $matchData['HomeGoal'],
                     'AwayGoal' => $matchData['AwayGoal'],
                     'high' => $high,
@@ -116,6 +115,7 @@ class MatchesController extends Controller
     
                 $match = Matches::updateOrCreate(
                     [
+                        'League' => $matchData['League'],
                         'HomeTeam' => $matchData['HomeTeam'],
                         'AwayTeam' => $matchData['AwayTeam'],
                         'MatchTime' => $matchData['MatchTime'],
