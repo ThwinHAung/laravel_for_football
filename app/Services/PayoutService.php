@@ -226,7 +226,7 @@ class PayoutService
                 if($totalGoals < $GpGoal){
                     return 2.0;
                 }elseif($totalGoals == $GpGoal){
-                    return (($GpUnit > 0) ? (1.0 - ($HdpUnit / 100)) : (1.0 + abs($GpUnit) / 100));
+                    return (($GpUnit > 0) ? (1.0 - ($GpUnit / 100)) : (1.0 + abs($GpUnit) / 100));
                 }else{
                     return 0.0;
                 }
