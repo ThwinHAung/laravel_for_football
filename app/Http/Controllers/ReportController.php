@@ -255,10 +255,11 @@ class ReportController extends Controller
     
         return response()->json($reports);
     }
-    public function getReportsBySSSenior(Request $request, $ssseniorId)
+    public function getReportsBySSSenior(Request $request)
     {
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+        $ssseniorId = auth()->user()->id;
     
         $sseniorIds = User::where('created_by', $ssseniorId)
             ->whereHas('role', function ($query) {
@@ -307,7 +308,7 @@ class ReportController extends Controller
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
-        // ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->whereBetween('reports.created_at', [$startDate, $endDate])
         ->get();
     
         return response()->json($reports);

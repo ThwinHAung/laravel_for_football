@@ -56,6 +56,6 @@ Route::group([
     Route::get("masterReport/{master_id}", [ReportController::class,"getReportsByMaster"]);
     Route::get("seniorReport/{senior_id}", [ReportController::class,"getReportsBySenior"]);
     Route::get("sseniorReport/{ssenior_id}", [ReportController::class,"getReportsBySSenior"]);
-    Route::get("ssseniorReport/{sssenior_id}", [ReportController::class,"getReportsBySSSenior"]);
+    Route::get("ssseniorReport", [ReportController::class,"getReportsBySSSenior"]);
     Route::get("logout",[AuthController::class,"logout"]);
 });
