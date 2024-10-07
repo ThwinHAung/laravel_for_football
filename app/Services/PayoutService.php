@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Accumulator;
 use App\Models\Matches;
 use App\Models\Bets;
+use App\Models\Commissions;
 use App\Models\MixBetCommissions;
+use App\Models\Report;
 use App\Models\SingleCommissions;
 use App\Models\Transition;
 use App\Models\User;
@@ -42,7 +44,7 @@ class PayoutService
 
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
-
+        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount, $match->League);
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
 
         if ($potentialWinningAmount > $bet->amount) {
@@ -64,6 +66,15 @@ class PayoutService
                 'Win'=>$bet->wining_amount,
                 'balance'=>$user->balance
             ]);
+            Report::create([
+                'user_id'=>$bet->user_id,
+                'bet_id'=>$bet->id,
+                'commissions_id'=>$commission_id,
+                'turnover'=>$bet->amount,
+                'valid_amount'=> $winningAmount,
+                'win_loss'=> $netWinnings,
+                'type'=> 'Los'
+,            ]);
         } else if($potentialWinningAmount > 0){
             $bet->status = 'Win';
             $bet->wining_amount = $potentialWinningAmount;
@@ -78,11 +89,28 @@ class PayoutService
                 'Win'=>$bet->wining_amount,
                 'balance'=>$user->balance
             ]);
+            Report::create([
+                'user_id'=>$bet->user_id,
+                'bet_id'=>$bet->id,
+                'commissions_id'=>$commission_id,
+                'turnover'=>$bet->amount,
+                'valid_amount'=> $potentialWinningAmount,
+                'win_loss'=> $potentialWinningAmount,
+                'type'=> 'Win'
+,            ]);
         }else{
             $bet->status = 'Lose';
             $bet->save();
+            Report::create([
+                'user_id'=>$bet->user_id,
+                'bet_id'=>$bet->id,
+                'commissions_id'=>$commission_id,
+                'turnover'=>$bet->amount,
+                'valid_amount'=> $bet->amount,
+                'win_loss'=> $bet->amount,
+                'type'=> 'Win'
+,            ]);
         }
-        // $this->calculateSingleBetCommission($bet->user_id, $bet->amount, $match->league);
     }
 
     protected function calculatePotentialWinningAmount(Bets $bet,Matches $match){
@@ -336,7 +364,7 @@ class PayoutService
                     'Win'=>$bet->wining_amount,
                     'balance'=>$user->balance
                 ]);
-                // $this->calculateAccumulatorBetCommission($bet->user_id,$bet->amount,$matchCount);
+                $this->calculateAccumulatorBetCommission($bet,$bet->user_id,$bet->amount,$matchCount);
             }
         });
     }
@@ -357,128 +385,198 @@ class PayoutService
             return 0.0; 
         }
     }
-    // public function calculateSingleBetCommission($userId, $amount, $leagueName) {
+
+    // protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount, $league)
+    // {
     //     $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    //     $commissionType = in_array($leagueName, $topLeagues) ? 'high' : 'low';
-    //     $constantRate = 2.0;
-    //     $remainingRate = $constantRate;
-    
-    //     while ($remainingRate > 0) {
-
-    //         $commission = SingleCommissions::where('user_id', $userId)->first();
-
-    //         if (!$commission) {
-    //             break;
-    //         }    
-
-    //         $userCommissionRate = $commissionType === 'high' ? $commission->high : $commission->low;
-
-    //         $commissionToGive = min($userCommissionRate, $remainingRate);
-    //         $commissionAmount = $amount * ($commissionToGive / 100);
-
-    //         $this->updateUserBalance($userId, $commissionAmount);
-    
-    //         $remainingRate -= $commissionToGive;
-    //         $user = User::find($userId);
-    //         $userId = $user->created_by;
-            
-    //         if (!$userId) {
-    //             break;
-    //         }
-    //     }
-    // }
-
-    // public function calculateSingleBetCommission($userId, $amount, $leagueName) {
-    //     $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    //     $commissionType = in_array($leagueName, $topLeagues) ? 'high' : 'low';
         
-    //     while ($userId) {
-    //         // Get the commission rate for the current user
-    //         $commission = SingleCommissions::where('user_id', $userId)->first();
-    //         $userCommissionRate = $commissionType === 'high' ? $commission->high : $commission->low;
+    //     $commissionType = in_array($league, $topLeagues) ? 'high' : 'low';
     
-    //         // Calculate the commission amount for the current user
-    //         $commissionAmount = $amount * ($userCommissionRate / 100);
+    //     $user = User::find($userId);
+    //     $currentRole = $user->role;
+    //     $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
+        
+    //     $commissionGiven = 0; 
+    //     while ($currentRole && $currentRole->name !== 'SSSenior') {
+    //         $commissionPercentage = $currentCommission ? $currentCommission->{$commissionType} : 0;
+            
+    //         if ($commissionPercentage == 0) {
+    //             $parentRole = $currentRole->parentRole;
+    //             if ($parentRole) {
+    //                 $user = $parentRole->users->first();
+    //                 $currentRole = $parentRole;
+    //                 $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
+    //             } else {
+    //                 break;
+    //             }
+    //             continue;
+    //         }
+    //         $netCommission = $commissionPercentage - $commissionGiven;
     
-    //         // Update the user's balance with their commission amount
-    //         $this->updateUserBalance($userId, $commissionAmount);
+    //         if ($netCommission <= 0) {
+    //             break;
+    //         }
     
-    //         // Find the parent user to pass the remaining commission to
-    //         $user = User::find($userId);
-    //         $parentUserId = $user->created_by;
+    //         $commissionAmount = $betAmount * ($netCommission / 100);
     
-    //         // Adjust the user's commission rate by subtracting the given amount
-    //         $userId = $parentUserId;
+    //         $this->updateUserBalance($user->id, $commissionAmount);
     
-    //         // If there's a parent user, calculate the remaining commission to pass up
-    //         if ($userId) {
-    //             $parentCommission = SingleCommissions::where('user_id', $userId)->first();
-    //             $parentCommissionRate = $commissionType === 'high' ? $parentCommission->high : $parentCommission->low;
-                
-    //             // Subtract the child's rate from the parent's rate
-    //             $userCommissionRate = max(0, $parentCommissionRate - $userCommissionRate);
+    //         Transition::create([
+    //             'user_id' => $user->id,
+    //             'description' => 'Commission (Bet ID: ' . $bet->id . ')',
+    //             'type' => 'IN',
+    //             'amount' => $commissionAmount,
+    //             'balance' => $user->balance
+    //         ]);
+    
+    //         $commissionGiven += $netCommission;
+    
+    //         $parentRole = $currentRole->parentRole;
+    //         if ($parentRole) {
+    //             $user = $parentRole->users->first();
+    //             $currentRole = $parentRole;
+    //             $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
+    //         } else {
+    //             break;
     //         }
     //     }
     // }
-    
 
-    // public function calculateSingleBetCommission($userId, $amount, $leagueName) {
-    //     $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    //     $commissionType = in_array($leagueName, $topLeagues) ? 'high' : 'low';
-    //     $constantRate = 2.0;
-    //     $remainingRate = $constantRate;
-    //     $parentUserId = $userId;
+    protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount, $league)
+{
+    $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
+    $commissionType = in_array($league, $topLeagues) ? 'high' : 'low';
+
+    $user = User::find($userId);
+    $currentRole = $user->role;
+    $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
+
+    $commissionGiven = 0;
+    $commissionData = [
+        'bet_id' => $bet->id,
+        'user' => 0,
+        'agent' => 0,
+        'master' => 0,
+        'senior' => 0,
+        'ssenior' => 0
+    ];
+
+    while ($user && $currentRole && $currentRole->name !== 'SSSenior') {
+        $commissionPercentage = $currentCommission ? $currentCommission->{$commissionType} : 0;
+
+        if ($commissionPercentage == 0) {
+            $parentUser = User::find($user->created_by); 
+            if ($parentUser) {
+                $user = $parentUser;
+                $currentRole = $user->role;
+                $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
+            } else {
+                break;
+            }
+            continue;
+        }
+
+        $netCommission = $commissionPercentage - $commissionGiven;
+        if ($netCommission <= 0) {
+            break;
+        }
+
+        $commissionAmount = $betAmount * ($netCommission / 100);
+
+        $this->updateUserBalance($user->id, $commissionAmount);
+
+        switch ($currentRole->name) {
+            case 'User':
+                $commissionData['user'] = $commissionAmount;
+                break;
+            case 'Agent':
+                $commissionData['agent'] = $commissionAmount;
+                break;
+            case 'Master':
+                $commissionData['master'] = $commissionAmount;
+                break;
+            case 'Senior':
+                $commissionData['senior'] = $commissionAmount;
+                break;
+            case 'SSenior':
+                $commissionData['ssenior'] = $commissionAmount;
+                break;
+        }
+
+        Transition::create([
+            'user_id' => $user->id,
+            'description' => 'Commission (Bet ID: ' . $bet->id . ')',
+            'type' => 'IN',
+            'amount' => $commissionAmount,
+            'balance' => $user->balance
+        ]);
+
+        $commissionGiven += $netCommission;
+
+        $parentUser = User::find($user->created_by);
+        if ($parentUser) {
+            $user = $parentUser;
+            $currentRole = $user->role;
+            $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
+        } else {
+            break;
+        }
+    }
+    $commissionRecord = Commissions::create($commissionData);
+
+    return $commissionRecord->id;
+}
+    protected function calculateAccumulatorBetCommission(Bets $bet,$userId, $betAmount, $matchCount)
+{
+    $user = User::find($userId);
+    $currentRole = $user->role;
+    $currentCommission = MixBetCommissions::where('user_id', $user->id)->first();
     
-    //     while ($remainingRate > 0 && $parentUserId) {
-    //         $commission = SingleCommissions::where('user_id', $parentUserId)->first();
-    //         $userCommissionRate = $commissionType === 'high' ? $commission->high : $commission->low;
-    
-    //         // The current user's commission
-    //         $commissionToGive = min($userCommissionRate, $remainingRate);
-    //         $commissionAmount = $amount * ($commissionToGive / 100);
-    
-    //         // Update the balance
-    //         $this->updateUserBalance($parentUserId, $commissionAmount);
-    
-    //         // Deduct from remaining rate for next level
-    //         $remainingRate -= $commissionToGive;
-    //         $parentUser = User::find($parentUserId);
-    //         $parentUserId = $parentUser->created_by;
-    
-    //         // Update the next user's commission rate
-    //         $remainingRate = min($remainingRate, $userCommissionRate);
-    //     }
-    // }
-    
-    // public function calculateSingleBetCommission($userId, $amount, $leagueName) {
-    //     $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    //     $commissionType = in_array($leagueName, $topLeagues) ? 'high' : 'low';
-    //     $remainingRate = 2.0; // This is the constant rate
-    
-    //     while ($remainingRate > 0) {
-    //         $commission = SingleCommissions::where('user_id', $userId)->first();
-    //         $userCommissionRate = $commissionType === 'high' ? $commission->high : $commission->low;
-    
-    //         if ($userCommissionRate > 0) {
-    //             // Calculate the amount the current user should get after giving to their child
-    //             $commissionToGive = min($userCommissionRate, $remainingRate);
-    //             $commissionAmount = $amount * ($commissionToGive / 100);
-    
-    //             // Update the user's balance with the calculated commission amount
-    //             $this->updateUserBalance($userId, $commissionAmount);
-    
-    //             // Decrease the remaining rate by the amount given to the current user
-    //             $remainingRate -= $userCommissionRate;
-    //         }
-    
-    //         // Get the parent user's ID and continue the loop with the parent
-    //         $user = User::find($userId);
-    //         if (!$user) {
-    //             break; // Stop the loop if there is no more parent user
-    //         }
-    //         $userId = $user->created_by;
-    //     }
-    // }
-    
+    $commissionGiven = 0; 
+    $commissionType = 'm' . $matchCount;
+
+    while ($currentRole && $currentRole->name !== 'SSSenior') {
+        $commissionPercentage = $currentCommission ? $currentCommission->{$commissionType} : 0;
+        
+        if ($commissionPercentage == 0) {
+            $parentRole = $currentRole->parentRole;
+            if ($parentRole) {
+                $user = $parentRole->users->first();
+                $currentRole = $parentRole;
+                $currentCommission = MixBetCommissions::where('user_id', $user->id)->first();
+            } else {
+                break;
+            }
+            continue;
+        }
+        $netCommission = $commissionPercentage - $commissionGiven;
+        if ($netCommission <= 0) {
+            break;
+        }
+
+        $commissionAmount = $betAmount * ($netCommission / 100);
+
+        $this->updateUserBalance($user->id, $commissionAmount);
+
+        Transition::create([
+            'user_id' => $user->id,
+            'description' => 'Accumulator Commission (Bet ID: ' . $bet->id . ')',
+            'type' => 'IN',
+            'amount' => $commissionAmount,
+            'balance' => $user->balance
+        ]);
+
+        $commissionGiven += $netCommission;
+
+        $parentRole = $currentRole->parentRole;
+        if ($parentRole) {
+            $user = $parentRole->users->first();
+            $currentRole = $parentRole;
+            $currentCommission = MixBetCommissions::where('user_id', $user->id)->first();
+        } else {
+            break;
+        }
+    }
+}
 
 }
