@@ -16,6 +16,7 @@ Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
 Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
 Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
 
+
 // Route::post('v4N1/upload_match',[MatchesController::class,'upload_matches']);
 
 
@@ -52,7 +53,8 @@ Route::group([
     Route::get("getBetSlip/{id}",[BetController::class,'getBetSlip']);
     Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
     Route::get("getAccumulatorBetSlip/{bet_id}",[BetController::class,'getAccumulatorBetSlip']);
-    Route::get("agentReport/{agent_id}", [ReportController::class,"getReportsByAgent"]);
+    Route::get("agentReport", [ReportController::class,"getReportsByAgent"]);
+
     Route::get("masterReport/{master_id}", [ReportController::class,"getReportsByMaster"]);
     Route::get("seniorReport/{senior_id}", [ReportController::class,"getReportsBySenior"]);
     Route::get("sseniorReport/{ssenior_id}", [ReportController::class,"getReportsBySSenior"]);

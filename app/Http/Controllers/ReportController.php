@@ -4,15 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Accumulator;
 use App\Models\Bets;
+use App\Models\MixBetCommissions;
 use App\Models\Report;
+use App\Models\SingleCommissions;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    public function getReportsByAgent(Request $request,$agentId)
+    public function getReportsByAgent(Request $request)
 {
+    $agentId = auth()->user()->id;
     $startDate = $request->query('start_date');
     $endDate = $request->query('end_date');
     
@@ -56,50 +59,53 @@ class ReportController extends Controller
             return response()->json(['message' => 'Bet not found'], 404);
         }
     
+        $userCommission = $this->getUserCommission($bet);
+        $masterCommission = $this->getMasterCommission($bet->user_id);
+    
         $matchDetails = [];
     
         if ($bet->bet_type === 'single') {
-
-            $matchDetails[] = $this->getMatchDetails($bet->match, $bet->selected_outcome, $bet->amount, $bet->status, $bet->id,$bet->wining_amount);
+            $matchDetails[] = $this->getMatchDetails($bet->match, $bet->selected_outcome);
         } elseif ($bet->bet_type === 'accumulator') {
-
             $accumulators = Accumulator::with('match')
                             ->where('bet_id', $bet_id)
                             ->get();
     
             foreach ($accumulators as $acc) {
-                $matchDetails[] = $this->getMatchDetails($acc->match, $acc->selected_outcome, $bet->amount, $acc->status, $bet->id,$bet->wining_amount);
+                $matchDetails[] = $this->getMatchDetails($acc->match, $acc->selected_outcome);
             }
         }
+        $formattedBetTime = $bet->created_at->format('Y-m-d H:i:s');
+
     
-        return response()->json($matchDetails, 200);
+        return response()->json([
+            'bet_id' => $bet->id,
+            'bet_time' => $bet->created_at,
+            'bet_amount' => $bet->amount,
+            'bet_status' => $bet->status,
+            'wining_amount' => $bet->wining_amount,
+            'user_commission' => $userCommission,
+            'master_commission' => $masterCommission,
+            'matches' => $matchDetails,
+        ], 200);
     }
     
-    private function getMatchDetails($match, $selectedOutcome, $amount, $status, $bet_id,$wining_amount)
+    private function getMatchDetails($match, $selectedOutcome)
     {
         $formattedOutcome = $this->formatOutcome($selectedOutcome, $match->HomeTeam, $match->AwayTeam);
-    
         $hdp = $match->HdpGoal . '(' . $match->HdpUnit . ')';
-
         $gp = $match->GpGoal . '(' . $match->GpUnit . ')';
-    
-
         $odd = ($selectedOutcome === 'W1' || $selectedOutcome === 'W2') ? $hdp : $gp;
     
         return [
-            'bet_id' => $bet_id,
-            'match_time' => $match->MatchTime,
             'home_team' => $match->HomeTeam,
             'away_team' => $match->AwayTeam,
             'goal_score' => $match->HomeGoal . '-' . $match->AwayGoal,
-            'bet_amount' => $amount,
             'odd' => $odd,
-            'bet_status' => $status,
-            'wining_amount'=> $wining_amount,
             'selected_outcome' => $formattedOutcome,
         ];
     }
-
+    
     private function formatOutcome($selectedOutcome, $homeTeam, $awayTeam)
     {
         switch ($selectedOutcome) {
@@ -115,6 +121,48 @@ class ReportController extends Controller
                 return $selectedOutcome;
         }
     }
+    
+    private function getUserCommission($bet)
+    {
+        $userId = $bet->user_id;
+        if ($bet->bet_type === 'single') {
+            $singleCommission = SingleCommissions::where('user_id', $userId)->first();
+            $isHigh = $bet->match->high;
+            $commission = $isHigh ? $singleCommission->high : $singleCommission->low;
+        } else {
+            $matchCount = Accumulator::where('bet_id', $bet->id)->count();
+            $mixCommission = MixBetCommissions::where('user_id', $userId)->first();
+            $commission = $mixCommission->{'m' . $matchCount} ?? 0;
+        }
+    
+        return $commission;
+    }
+    
+    private function getMasterCommission($userId)
+    {
+        $user = User::find($userId);
+        $agent = User::find($user->created_by);
+    
+        while ($agent && $agent->role->name !== 'Master') {
+            $agent = User::find($agent->created_by);
+        }
+    
+        if ($agent && $agent->role->name === 'Master') {
+            $bet = Bets::where('user_id', $userId)->first();
+            if ($bet->bet_type === 'single') {
+                $singleCommission = SingleCommissions::where('user_id', $agent->id)->first();
+                $isHigh = $bet->match->high;
+                return $isHigh ? $singleCommission->high : $singleCommission->low;
+            } else {
+                $matchCount = Accumulator::where('bet_id', $bet->id)->count();
+                $mixCommission = MixBetCommissions::where('user_id', $agent->id)->first();
+                return $mixCommission->{'m' . $matchCount} ?? 0;
+            }
+        }
+    
+        return 0;
+    }
+    
     public function getReportsByMaster(Request $request,$masterId)
 {
     $startDate = $request->input('start_date');  
@@ -153,7 +201,7 @@ class ReportController extends Controller
     )
     // ->whereBetween('reports.created_at', [$startDate, $endDate])
     ->get();
-    return response()->json($reports);
+    return response()->json(['data'=>$reports],200);
     }
 
     public function getReportsBySenior(Request $request, $seniorId)
@@ -202,7 +250,7 @@ class ReportController extends Controller
         ->get();
 
         // Return the reports as a JSON response
-        return response()->json($reports);
+        return response()->json(['data'=>$reports],200);
     }
     public function getReportsBySSenior(Request $request, $sseniorId)
     {
@@ -253,7 +301,7 @@ class ReportController extends Controller
         // ->whereBetween('reports.created_at', [$startDate, $endDate])
         ->get();
     
-        return response()->json($reports);
+        return response()->json(['data'=>$reports],200);
     }
     public function getReportsBySSSenior(Request $request)
     {
@@ -311,7 +359,7 @@ class ReportController extends Controller
         ->whereBetween('reports.created_at', [$startDate, $endDate])
         ->get();
     
-        return response()->json($reports);
+        return response()->json(['data'=>$reports],200);
     }
     
 }
