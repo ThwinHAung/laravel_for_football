@@ -75,7 +75,6 @@ class ReportController extends Controller
                 $matchDetails[] = $this->getMatchDetails($acc->match, $acc->selected_outcome);
             }
         }
-        $formattedBetTime = $bet->created_at->format('Y-m-d H:i:s');
 
     
         return response()->json([
@@ -152,15 +151,15 @@ class ReportController extends Controller
             if ($bet->bet_type === 'single') {
                 $singleCommission = SingleCommissions::where('user_id', $agent->id)->first();
                 $isHigh = $bet->match->high;
-                return $isHigh ? $singleCommission->high : $singleCommission->low;
+                $commission = $isHigh ? $singleCommission->high : $singleCommission->low;
             } else {
                 $matchCount = Accumulator::where('bet_id', $bet->id)->count();
                 $mixCommission = MixBetCommissions::where('user_id', $agent->id)->first();
-                return $mixCommission->{'m' . $matchCount} ?? 0;
+
+                $commission = $mixCommission->{'m' . $matchCount} ?? 0;
             }
         }
-    
-        return 0;
+        return $commission;
     }
     
     public function getReportsByMaster(Request $request,$masterId)

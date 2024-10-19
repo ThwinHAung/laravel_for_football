@@ -44,12 +44,12 @@ class PayoutService
 
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
-        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount);
+        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount,$match);
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
 
         if ($potentialWinningAmount > $bet->amount) {
             $winningAmount = $potentialWinningAmount - $bet->amount;
-            $taxRate = $this->getTaxRate($bet);
+            $taxRate = $this->getTaxRate($match);
             $taxAmount = $winningAmount * $taxRate;
             $netWinnings = $winningAmount - $taxAmount;
             
@@ -333,24 +333,44 @@ class PayoutService
             $bet = Bets::where('id', $betId)->lockForUpdate()->first();
             if ($bet) {
                 $accumulatorBets = Accumulator::where('bet_id', $betId)->lockForUpdate()->get();
+                $matchCount = $accumulatorBets->count();
+                $commission_id = $this->calculateAccumulatorBetCommission($bet,$bet->user_id,$bet->amount,$matchCount);
     
                 if ($accumulatorBets->where('status', 'Lose')->count() > 0) {
                     $bet->status = 'Lose';
                     $bet->wining_amount = 0;
+                    $bet->status = 'Lose';
+                    $bet->save();
+                    Report::create([
+                        'user_id'=>$bet->user_id,
+                        'bet_id'=>$bet->id,
+                        'commissions_id'=>$commission_id,
+                        'turnover'=>$bet->amount,
+                        'valid_amount'=> $bet->amount,
+                        'win_loss'=> $bet->amount,
+                        'type'=> 'Win'
+        ,            ]);
                 } else {
                     $totalOdds = $accumulatorBets->reduce(function ($carry, $item) {
                         return $carry * $item->wining_odd;
                     }, 1.0);
     
                     $winningAmount = $bet->amount * $totalOdds;
-                    $matchCount = $accumulatorBets->count();
                     $taxRate = $this->getAccumulatorTaxRate($matchCount);
                     $taxAmount = $winningAmount * $taxRate;
                     $netWinnings = $winningAmount - $taxAmount;
 
                     $bet->wining_amount = $netWinnings;
                     $bet->status = 'Win';
-
+                    Report::create([
+                        'user_id'=>$bet->user_id,
+                        'bet_id'=>$bet->id,
+                        'commissions_id'=>$commission_id,
+                        'turnover'=>$bet->amount,
+                        'valid_amount'=> $winningAmount,
+                        'win_loss'=> $netWinnings,
+                        'type'=> 'Los'
+        ,            ]);
                 }
     
                 $bet->save();
@@ -364,14 +384,14 @@ class PayoutService
                     'Win'=>$bet->wining_amount,
                     'balance'=>$user->balance
                 ]);
-                $this->calculateAccumulatorBetCommission($bet,$bet->user_id,$bet->amount,$matchCount);
+                
             }
         });
     }
     
-    protected function getTaxRate(Bets $bet)
+    protected function getTaxRate(Matches $match)
     {
-        return $bet->high ? 0.06 : 0.08;
+        return $match->high ? 0.06 : 0.08;
     }       
     protected function getAccumulatorTaxRate($matchCount)
     {
@@ -383,66 +403,9 @@ class PayoutService
             return 0.0; 
         }
     }
-
-    // protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount, $league)
-    // {
-    //     $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-        
-    //     $commissionType = in_array($league, $topLeagues) ? 'high' : 'low';
-    
-    //     $user = User::find($userId);
-    //     $currentRole = $user->role;
-    //     $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
-        
-    //     $commissionGiven = 0; 
-    //     while ($currentRole && $currentRole->name !== 'SSSenior') {
-    //         $commissionPercentage = $currentCommission ? $currentCommission->{$commissionType} : 0;
-            
-    //         if ($commissionPercentage == 0) {
-    //             $parentRole = $currentRole->parentRole;
-    //             if ($parentRole) {
-    //                 $user = $parentRole->users->first();
-    //                 $currentRole = $parentRole;
-    //                 $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
-    //             } else {
-    //                 break;
-    //             }
-    //             continue;
-    //         }
-    //         $netCommission = $commissionPercentage - $commissionGiven;
-    
-    //         if ($netCommission <= 0) {
-    //             break;
-    //         }
-    
-    //         $commissionAmount = $betAmount * ($netCommission / 100);
-    
-    //         $this->updateUserBalance($user->id, $commissionAmount);
-    
-    //         Transition::create([
-    //             'user_id' => $user->id,
-    //             'description' => 'Commission (Bet ID: ' . $bet->id . ')',
-    //             'type' => 'IN',
-    //             'amount' => $commissionAmount,
-    //             'balance' => $user->balance
-    //         ]);
-    
-    //         $commissionGiven += $netCommission;
-    
-    //         $parentRole = $currentRole->parentRole;
-    //         if ($parentRole) {
-    //             $user = $parentRole->users->first();
-    //             $currentRole = $parentRole;
-    //             $currentCommission = SingleCommissions::where('user_id', $user->id)->first();
-    //         } else {
-    //             break;
-    //         }
-    //     }
-    // }
-
-    protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount)
+    protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount, Matches $match)
 {
-    $commissionType = $bet->high ? 'high' : 'low';
+    $commissionType = $match->high ? 'high' : 'low';
 
     $user = User::find($userId);
     $currentRole = $user->role;
@@ -528,10 +491,9 @@ class PayoutService
     $user = User::find($userId);
     $currentRole = $user->role;
     $currentCommission = MixBetCommissions::where('user_id', $user->id)->first();
-    
-    $commissionGiven = 0; 
     $commissionType = 'm' . $matchCount;
 
+    $commissionGiven = 0; 
     $commissionData = [
         'bet_id' => $bet->id,
         'user' => 0,
@@ -541,14 +503,14 @@ class PayoutService
         'ssenior' => 0
     ];
 
-    while ($currentRole && $currentRole->name !== 'SSSenior') {
+    while ($user && $currentRole && $currentRole->name !== 'SSSenior') {
         $commissionPercentage = $currentCommission ? $currentCommission->{$commissionType} : 0;
         
         if ($commissionPercentage == 0) {
-            $parentRole = $currentRole->parentRole;
-            if ($parentRole) {
-                $user = $parentRole->users->first();
-                $currentRole = $parentRole;
+            $parentUser = User::find($user->created_by); 
+            if ($parentUser) {
+                $user = $parentUser;
+                $currentRole = $user->role;
                 $currentCommission = MixBetCommissions::where('user_id', $user->id)->first();
             } else {
                 break;
@@ -592,16 +554,18 @@ class PayoutService
 
         $commissionGiven += $netCommission;
 
-        $parentRole = $currentRole->parentRole;
-        if ($parentRole) {
-            $user = $parentRole->users->first();
-            $currentRole = $parentRole;
+        $parentUser = User::find($user->created_by);
+        if ($parentUser) {
+            $user = $parentUser;
+            $currentRole = $user->role;
             $currentCommission = MixBetCommissions::where('user_id', $user->id)->first();
         } else {
             break;
         }
     }
     $commissionRecord = Commissions::create($commissionData);
-}
+
+    return $commissionRecord->id;
+    }
 
 }
