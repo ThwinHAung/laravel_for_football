@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Accumulator;
 use App\Models\Bets;
+use App\Models\Commissions;
 use App\Models\Matches;
 use App\Models\MixBetCommissions;
+use App\Models\Report;
 use App\Models\SingleCommissions;
 use App\Models\Transition;
 use App\Models\User;
@@ -49,6 +51,7 @@ class BetController extends Controller
                 "Bet"=>$request->amount,
                 "balance"=>$User->balance
             ]);
+
             return response()->json(['message' => 'Single bet placed successfully'], 200);
         }
         

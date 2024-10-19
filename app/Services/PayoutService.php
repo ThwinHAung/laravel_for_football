@@ -44,12 +44,12 @@ class PayoutService
 
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
-        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount, $match->League);
+        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount);
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
 
         if ($potentialWinningAmount > $bet->amount) {
             $winningAmount = $potentialWinningAmount - $bet->amount;
-            $taxRate = $this->getTaxRate($match->League);
+            $taxRate = $this->getTaxRate($bet);
             $taxAmount = $winningAmount * $taxRate;
             $netWinnings = $winningAmount - $taxAmount;
             
@@ -369,11 +369,9 @@ class PayoutService
         });
     }
     
-
-    protected function getTaxRate($leagueName)
+    protected function getTaxRate(Bets $bet)
     {
-        $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-        return in_array($leagueName, $topLeagues) ? 0.06 : 0.08;
+        return $bet->high ? 0.06 : 0.08;
     }       
     protected function getAccumulatorTaxRate($matchCount)
     {
@@ -442,10 +440,9 @@ class PayoutService
     //     }
     // }
 
-    protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount, $league)
+    protected function calculateSingleBetCommission(Bets $bet, $userId, $betAmount)
 {
-    $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
-    $commissionType = in_array($league, $topLeagues) ? 'high' : 'low';
+    $commissionType = $bet->high ? 'high' : 'low';
 
     $user = User::find($userId);
     $currentRole = $user->role;
@@ -535,6 +532,15 @@ class PayoutService
     $commissionGiven = 0; 
     $commissionType = 'm' . $matchCount;
 
+    $commissionData = [
+        'bet_id' => $bet->id,
+        'user' => 0,
+        'agent' => 0,
+        'master' => 0,
+        'senior' => 0,
+        'ssenior' => 0
+    ];
+
     while ($currentRole && $currentRole->name !== 'SSSenior') {
         $commissionPercentage = $currentCommission ? $currentCommission->{$commissionType} : 0;
         
@@ -558,6 +564,24 @@ class PayoutService
 
         $this->updateUserBalance($user->id, $commissionAmount);
 
+        switch ($currentRole->name) {
+            case 'User':
+                $commissionData['user'] = $commissionAmount;
+                break;
+            case 'Agent':
+                $commissionData['agent'] = $commissionAmount;
+                break;
+            case 'Master':
+                $commissionData['master'] = $commissionAmount;
+                break;
+            case 'Senior':
+                $commissionData['senior'] = $commissionAmount;
+                break;
+            case 'SSenior':
+                $commissionData['ssenior'] = $commissionAmount;
+                break;
+        }
+
         Transition::create([
             'user_id' => $user->id,
             'description' => 'Accumulator Commission (Bet ID: ' . $bet->id . ')',
@@ -577,6 +601,7 @@ class PayoutService
             break;
         }
     }
+    $commissionRecord = Commissions::create($commissionData);
 }
 
 }

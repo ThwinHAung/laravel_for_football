@@ -43,7 +43,6 @@ class MatchesController extends Controller
     public function updateMatches(Request $request)
     {
         $data = $request->all();
-        $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
     
         foreach ($data as $matchData) {
             // Skip invalid entries
@@ -52,7 +51,6 @@ class MatchesController extends Controller
             }
     
             if (isset($matchData['HomeTeam'], $matchData['AwayTeam'], $matchData['MatchTime'])) {
-                $high = in_array($matchData['League'] ?? '', $topLeagues);
     
                 Matches::updateOrCreate(
                     [
@@ -73,7 +71,7 @@ class MatchesController extends Controller
                         'HomeGoal' => $matchData['HomeGoal'] ?? null,
                         'AwayGoal' => $matchData['AwayGoal'] ?? null,
                         'IsEnd' => false,
-                        'high' => (bool) $high
+                        'high' => $matchData['high'],
                     ]
                 );
             }
@@ -85,7 +83,6 @@ class MatchesController extends Controller
     public function updateGoals(Request $request)
     {
         $data = $request->all();
-        $topLeagues = ['ENGLISH PREMIER LEAGUE', 'SPAIN LALIGA', 'ITALY SERIE A', 'GERMANY BUNDESLIGA', 'FRANCE LIGUE 1', 'UEFA CHAMPIONS LEAGUE'];
         // Log::info('Goal score at ' . now(), $data);
 
         foreach ($data as $key => $matchData) {
@@ -103,12 +100,10 @@ class MatchesController extends Controller
                 array_key_exists('IsEnd', $matchData) && 
                 array_key_exists('IsPost', $matchData)) {
     
-                $high = in_array($matchData['League'] ?? '', $topLeagues);
-    
                 $matchAttributes = [
                     'HomeGoal' => $matchData['HomeGoal'],
                     'AwayGoal' => $matchData['AwayGoal'],
-                    'high' => $high,
+                    // 'high' => $high,
                     'IsEnd' => $matchData['IsEnd'],
                     'IsPost' => $matchData['IsPost'],
                 ];
