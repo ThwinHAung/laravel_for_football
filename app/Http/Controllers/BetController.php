@@ -124,6 +124,7 @@ class BetController extends Controller
         )
         ->where('user_id', $user_id)
         ->where('bet_type', 'single')
+        ->where('status', 'Accepted')
         ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
         ->get();
 
@@ -140,6 +141,7 @@ class BetController extends Controller
         )
         ->where('bets.user_id', $user_id)
         ->where('bets.bet_type', 'accumulator')
+        ->where('status', 'Accepted')
         ->whereBetween('bets.created_at', [$startOfYesterday, $endOfToday])
         ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount','bets.created_at')
         ->get();
