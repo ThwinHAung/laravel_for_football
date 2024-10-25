@@ -132,10 +132,41 @@ class MatchesController extends Controller
         return response()->json(['status' => 'Goal socre success'], 200);
     }
     
+    public function manual_goal_update(Request $request) {
+
+        $validator = Validator::make($request->all(), [
+            'match_id' => 'required|exists:matches,id', 
+            'home_goals' => 'required|numeric',
+            'away_goals' => 'required|numeric',
+            'IsPost' => 'required|boolean',
+        ]);
     
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
     
+        $match = Matches::find($request->input('match_id'));
     
+        if ($request->input('IsPost') == false) {
+            $match->update([
+                'IsPost' => false,
+                'IsEnd' => true, 
+                'HomeGoal' => $request->input('home_goals'),
+                'AwayGoal' => $request->input('away_goals')
+            ]);
+            event(new MatchFinished($match));
+        }else{
+            $match->update([
+                'IsPost' => true,
+                'IsEnd' => false, 
+                'HomeGoal' => $request->input('home_goals'),
+                'AwayGoal' => $request->input('away_goals')
+            ]);
+            event(new MatchPostponed($match));
+        }
     
+        return response()->json(['message' => 'Match finished successful.'], 200);
+    }
     
     
 }

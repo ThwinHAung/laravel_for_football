@@ -15,6 +15,7 @@ Route::post("login", [AuthController::class,"login"]);
 Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
 Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
 Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
+Route::post("matchupdateStatus",[MatchesController::class,"manual_goal_update"]);
 
 
 
@@ -25,7 +26,6 @@ Route::group([
     "middleware"=> ["auth:api"],
 ],function(){
     Route::post("register", [AuthController::class,"register"]);
-    Route::get("retrieve_match",[MatchesController::class,'retrieve_match']);
     Route::post("manageUnits", [TransitionController::class,"manageUnits"]);
     Route::post("transition", [TransitionController::class,"record_transition"]);
     Route::post("suspend_user",[StatusController::class,"suspend_user"]);
@@ -35,18 +35,20 @@ Route::group([
     // Route::post("delete_user",[StatusController::class,"delete_user"]);
     Route::post("change_password_user",[AuthController::class,"change_passowrd_user"]);
     Route::post("change_password",[AuthController::class,"change_passowrd"]);
+    Route::post("editBetLimit",[BetController::class,'editBetLimit']);
+    Route::post("SingleCommissions",[BetController::class,'SingleCommissions']);
+    Route::post("editMix3to11Commissions",[BetController::class,'editMix3to11Commissions']);
+    Route::post("editMix2Commissions",[BetController::class,'editMix2Commissions']);
+    Route::post("editBasicInfo/{id}", [AuthController::class,"editBasicInfo"]);
 
+
+    Route::get("retrieve_match",[MatchesController::class,'retrieve_match']);
     Route::get("getmemberCount", [StatusController::class,"member_count"]);
     Route::get("getdownlineBalance", [StatusController::class,"down_line"]);
     Route::get("getoutstandingBalance", [StatusController::class,"outstanding_balance"]);
     Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
     Route::get("getTransactionsForDate/{id}/{date}",[TransitionController::class,'fetchTransactionsForDate']);
-    Route::post("editBetLimit",[BetController::class,'editBetLimit']);
-    Route::post("SingleCommissions",[BetController::class,'SingleCommissions']);
-    Route::post("editMix3to11Commissions",[BetController::class,'editMix3to11Commissions']);
-    Route::post("editMix2Commissions",[BetController::class,'editMix2Commissions']);
     Route::get("getmemberlist", [AuthController::class,"getCreatedUsers"]);
-    Route::post("editBasicInfo/{id}", [AuthController::class,"editBasicInfo"]);
     Route::get("getUserDetails/{id}", [AuthController::class,"getUserDetails"]);
     Route::get("get_balance",[AuthController::class,"balance"]);
     Route::get("maxAmountBets/{username}",[StatusController::class,"getMixBets"]);
