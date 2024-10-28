@@ -14,17 +14,17 @@ Route::post("login", [AuthController::class,"login"]);
 
 Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
 Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
-Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
-Route::post("matchupdateStatus",[MatchesController::class,"manual_goal_update"]);
 
 
 
-// Route::post('v4N1/upload_match',[MatchesController::class,'upload_matches']);
 
 
 Route::group([
     "middleware"=> ["auth:api"],
 ],function(){
+    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
+    Route::post("matchupdateStatus",[MatchesController::class,"manual_goal_update"]);
+
     Route::post("register", [AuthController::class,"register"]);
     Route::post("manageUnits", [TransitionController::class,"manageUnits"]);
     Route::post("transition", [TransitionController::class,"record_transition"]);
@@ -53,7 +53,9 @@ Route::group([
     Route::get("get_balance",[AuthController::class,"balance"]);
     Route::get("maxAmountBets/{username}",[StatusController::class,"getMixBets"]);
     Route::get("retrieve_matchesHistory",[MatchesController::class,'matchHistory']);
-    Route::get("getBetSlip/{id}",[BetController::class,'getBetSlip']);
+    Route::get("getBetSlip/{id}",[BetController::class,'getOutstandingBetSlip']);
+    Route::get("getPayoutBetSlip/{id}",[BetController::class,'getPayoutBetSlip']);
+
     Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
     Route::get("getAccumulatorBetSlip/{bet_id}",[BetController::class,'getAccumulatorBetSlip']);
     Route::get("agentReport", [ReportController::class,"getReportsByAgent"]);

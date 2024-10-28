@@ -13,44 +13,44 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-//     public function getReportsByAgent(Request $request,$agentId)
-// {
-//     // $agentId = auth()->user()->id;
-//     $startDate = $request->query('start_date');
-//     $endDate = $request->query('end_date');
+    public function getGroupReportsByAgent(Request $request)
+{
+    $agentId = auth()->user()->id;
+    $startDate = $request->query('start_date');
+    $endDate = $request->query('end_date');
     
-//     $userIds = User::where('created_by', $agentId)->pluck('id');
-//     if ($userIds->isEmpty()) {
-//         return response()->json(['message' => 'No users found for this agent.'], 404);
-//     }
+    $userIds = User::where('created_by', $agentId)->pluck('id');
+    if ($userIds->isEmpty()) {
+        return response()->json(['message' => 'No users found for this agent.'], 404);
+    }
 
-//     $reports = Report::whereIn('user_id', $userIds)
-//         ->join('users', 'reports.user_id', '=', 'users.id')
-//         ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
-//         ->whereBetween('reports.created_at', [$startDate, $endDate])
-//         ->select(
-//             'users.username',      
-//             'users.realname', 
-//             DB::raw("SUM(reports.turnover) as total_turnover"),
-//             DB::raw("SUM(reports.valid_amount) as total_valid_amount"),
-//             DB::raw("
-//                 SUM(CASE 
-//                     WHEN reports.type = 'Los' THEN -reports.win_loss
-//                     ELSE reports.win_loss
-//                 END) as total_adjusted_win_loss
-//             "),
-//             DB::raw("SUM(commissions.master) as total_master"),  
-//             DB::raw("SUM(commissions.agent) as total_agent")
-//         )
-//         ->groupBy('users.username', 'users.realname') // Group by username and realname
-//         ->get();
+    $reports = Report::whereIn('user_id', $userIds)
+        ->join('users', 'reports.user_id', '=', 'users.id')
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->select(
+            'users.username',      
+            'users.realname', 
+            DB::raw("SUM(reports.turnover) as total_turnover"),
+            DB::raw("SUM(reports.valid_amount) as total_valid_amount"),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_adjusted_win_loss
+            "),
+            DB::raw("SUM(commissions.master) as total_master"),  
+            DB::raw("SUM(commissions.agent) as total_agent")
+        )
+        ->groupBy('users.username', 'users.realname') // Group by username and realname
+        ->get();
 
-//     if ($reports->isEmpty()) {
-//         return response()->json(['message' => 'No reports found for these users.'], 404);
-//     }
+    if ($reports->isEmpty()) {
+        return response()->json(['message' => 'No reports found for these users.'], 404);
+    }
 
-//     return response()->json(['data' => $reports], 200);
-// }
+    return response()->json(['data' => $reports], 200);
+}
 
     public function getReportsByAgent(Request $request)
 {

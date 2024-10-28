@@ -56,7 +56,6 @@ class BetController extends Controller
         }
         
     }
-
     public function placeAccumulatorBet(Request $request){
         $user_id = auth()->user()->id;
         $request->validate([
@@ -98,12 +97,8 @@ class BetController extends Controller
 
         return response()->json(['message' => 'Accumulator bet placed successfully'], 200);
     }
-
-    public function getBetSlip($username)
+    public function getOutstandingBetSlip($username)
     {
-        $endOfToday = Carbon::tomorrow()->subSecond();
-        $startOfYesterday = Carbon::yesterday();
-
         $user = User::where('username', $username)->first();
 
         if (!$user) {
@@ -124,8 +119,7 @@ class BetController extends Controller
         )
         ->where('user_id', $user_id)
         ->where('bet_type', 'single')
-        ->where('status', 'Accepted')
-        ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
+        ->where('bets.status', 'Accepted')
         ->get();
 
 
@@ -141,8 +135,7 @@ class BetController extends Controller
         )
         ->where('bets.user_id', $user_id)
         ->where('bets.bet_type', 'accumulator')
-        ->where('status', 'Accepted')
-        ->whereBetween('bets.created_at', [$startOfYesterday, $endOfToday])
+        ->where('bets.status', 'Accepted')
         ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount','bets.created_at')
         ->get();
 
@@ -266,7 +259,54 @@ class BetController extends Controller
     
         return response()->json($response);
     }
+    public function getPayoutBetSlip (Request $request,$username){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
 
+        $user = User::where('username', $username)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $user_id = $user->id;
+    
+        $singleBets = DB::table('bets')
+        ->select(
+            'id',
+            'match_id',
+            'selected_outcome',
+            'amount',
+            'status',
+            'wining_amount',
+            DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') as created_at")
+        )
+        ->where('user_id', $user_id)
+        ->where('bet_type', 'single')
+        ->where('bets.status', '!=', 'Accepted')
+        ->whereBetween('bets.created_at', [$startDate, $endDate])
+        ->get();
+
+
+        $accumulatorBets = DB::table('bets')
+        ->leftJoin('accumulators', 'bets.id', '=', 'accumulators.bet_id')
+        ->select(
+            'bets.id',
+            'bets.amount',
+            'bets.status',
+            'bets.wining_amount',
+            'bets.created_at',
+            DB::raw('COUNT(accumulators.id) AS match_count')
+        )
+        ->where('bets.user_id', $user_id)
+        ->where('bets.bet_type', 'accumulator')
+        ->where('bets.status', '!=', 'Accepted')
+        ->whereBetween('bets.created_at', [$startDate, $endDate])
+        ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount','bets.created_at')
+        ->get();
+
+        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets,'accumulatorBets'=>$accumulatorBets]);    
+    }
     public function editBetLimit(Request $request){
         $customMessages = [
             'required'=>'Fill all fields',
@@ -325,7 +365,6 @@ class BetController extends Controller
 
 
     }
-
     public function SingleCommissions(Request $request) {
         $customMessages = [
             'required' => 'Fill all fields',
@@ -406,7 +445,6 @@ class BetController extends Controller
             'high_commissions' => $highCommissionResponse,
         ], 200);
     }
-    
     public function editMix3to11Commissions(Request $request) {
         $customMessages = [
             'required' => 'Fill all fields',
@@ -462,7 +500,6 @@ class BetController extends Controller
             return response()->json(['message' => 'Commissions transferred'], 200);
         }
     }
-    
     public function editMix2Commissions(Request $request) {
         $customMessages = [
             'required' => 'Fill all fields',
