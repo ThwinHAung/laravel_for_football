@@ -166,4 +166,11 @@ class TransitionController extends Controller
     
         return response()->json($formattedTransactions);
     }
+
+    public function userTransition(Request $request){
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $userId = auth()->user()->id;
+    }
 }

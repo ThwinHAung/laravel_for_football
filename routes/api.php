@@ -14,15 +14,15 @@ Route::post("login", [AuthController::class,"login"]);
 
 Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
 Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
-
-
+Route::get("agentReport/{name}", [ReportController::class,"getReportsByAgent"]);
+Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
 
 
 
 Route::group([
     "middleware"=> ["auth:api"],
 ],function(){
-    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
+
     Route::post("matchupdateStatus",[MatchesController::class,"manual_goal_update"]);
 
     Route::post("register", [AuthController::class,"register"]);
@@ -55,10 +55,12 @@ Route::group([
     Route::get("retrieve_matchesHistory",[MatchesController::class,'matchHistory']);
     Route::get("getBetSlip/{id}",[BetController::class,'getOutstandingBetSlip']);
     Route::get("getPayoutBetSlip/{id}",[BetController::class,'getPayoutBetSlip']);
+   
 
     Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
     Route::get("getAccumulatorBetSlip/{bet_id}",[BetController::class,'getAccumulatorBetSlip']);
-    Route::get("agentReport", [ReportController::class,"getReportsByAgent"]);
+
+    Route::get("agentReportGroup",[ReportController::class,'getGroupReportsByAgent']);
 
     Route::get("masterReport/{master_id}", [ReportController::class,"getReportsByMaster"]);
     Route::get("seniorReport/{senior_id}", [ReportController::class,"getReportsBySenior"]);

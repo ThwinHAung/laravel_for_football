@@ -468,6 +468,7 @@ class PayoutService
             'description' => 'Commission (Bet ID: ' . $bet->id . ')',
             'type' => 'IN',
             'amount' => $commissionAmount,
+            'commission'=> $commissionAmount,
             'balance' => $user->balance
         ]);
 
@@ -549,6 +550,7 @@ class PayoutService
             'description' => 'Accumulator Commission (Bet ID: ' . $bet->id . ')',
             'type' => 'IN',
             'amount' => $commissionAmount,
+            'commission'=> $commissionAmount,
             'balance' => $user->balance
         ]);
 

@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class postponeService {
+class PostponeService {
     public function payoutPostpone(Matches $match) {
         $singleBets = Bets::where('match_id', $match->id)
             ->where('bet_type', 'single')
@@ -48,6 +48,7 @@ class postponeService {
             'description' => 'Refund (Bet ID: ' . $bet->id . ')',
             'type' => 'IN',
             'amount' => $bet->amount,
+            'IN'=>$bet->amount,
             'balance' => $user->balance
         ]);
     }

@@ -14,58 +14,61 @@ use Illuminate\Support\Facades\DB;
 class ReportController extends Controller
 {
     public function getGroupReportsByAgent(Request $request)
+    {
+        $agentId = auth()->user()->id;
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        $userIds = User::where('created_by', $agentId)->pluck('id');
+        if ($userIds->isEmpty()) {
+            return response()->json(['message' => 'No users found for this agent.'], 404);
+        }
+    
+        $reports = Report::whereIn('user_id', $userIds)
+            ->join('users', 'reports.user_id', '=', 'users.id')
+            ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+            ->whereBetween('reports.created_at', [$startDate, $endDate])
+            ->select(
+                'users.username',      
+                'users.realname', 
+                DB::raw("SUM(reports.turnover) as total_turnover"),
+                DB::raw("SUM(reports.valid_amount) as total_valid_amount"),
+                DB::raw("
+                    SUM(CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) as total_adjusted_win_loss
+                "),
+                DB::raw("SUM(commissions.master) as total_master"),  
+                DB::raw("SUM(commissions.agent) as total_agent"),
+                // 'reports.created_at' 'reports.created_at'
+            )
+            ->groupBy('users.username', 'users.realname',) 
+            ->get();
+    
+        if ($reports->isEmpty()) {
+            return response()->json(['message' => 'No reports found for these users.'], 404);
+        }
+    
+        return response()->json(['data' => $reports], 200);
+    }
+    
+
+    public function getReportsByAgent(Request $request,$username)
 {
-    $agentId = auth()->user()->id;
+    // $agentId = auth()->user()->id;
     $startDate = $request->query('start_date');
     $endDate = $request->query('end_date');
     
-    $userIds = User::where('created_by', $agentId)->pluck('id');
-    if ($userIds->isEmpty()) {
-        return response()->json(['message' => 'No users found for this agent.'], 404);
-    }
+    // $userIds = User::where('created_by', $agentId)->pluck('id');
+    // if ($userIds->isEmpty()) {
+    //     return response()->json(['message' => 'No users found for this agent.'], 404);
+    // }
 
-    $reports = Report::whereIn('user_id', $userIds)
-        ->join('users', 'reports.user_id', '=', 'users.id')
+    // $reports = Report::whereIn('user_id', $userIds)
+    $reports = Report::join('users', 'reports.user_id', '=', 'users.id')
         ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
-        ->whereBetween('reports.created_at', [$startDate, $endDate])
-        ->select(
-            'users.username',      
-            'users.realname', 
-            DB::raw("SUM(reports.turnover) as total_turnover"),
-            DB::raw("SUM(reports.valid_amount) as total_valid_amount"),
-            DB::raw("
-                SUM(CASE 
-                    WHEN reports.type = 'Los' THEN -reports.win_loss
-                    ELSE reports.win_loss
-                END) as total_adjusted_win_loss
-            "),
-            DB::raw("SUM(commissions.master) as total_master"),  
-            DB::raw("SUM(commissions.agent) as total_agent")
-        )
-        ->groupBy('users.username', 'users.realname') // Group by username and realname
-        ->get();
-
-    if ($reports->isEmpty()) {
-        return response()->json(['message' => 'No reports found for these users.'], 404);
-    }
-
-    return response()->json(['data' => $reports], 200);
-}
-
-    public function getReportsByAgent(Request $request)
-{
-    $agentId = auth()->user()->id;
-    $startDate = $request->query('start_date');
-    $endDate = $request->query('end_date');
-    
-    $userIds = User::where('created_by', $agentId)->pluck('id');
-    if ($userIds->isEmpty()) {
-        return response()->json(['message' => 'No users found for this agent.'], 404);
-    }
-
-    $reports = Report::whereIn('user_id', $userIds)
-        ->join('users', 'reports.user_id', '=', 'users.id')
-        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+        ->where('users.username', $username)
         ->whereBetween('reports.created_at', [$startDate, $endDate])
         ->select(
             'users.username',      
@@ -179,27 +182,46 @@ class ReportController extends Controller
     private function getMasterCommission($userId)
     {
         $user = User::find($userId);
-        $agent = User::find($user->created_by);
+        $agent = User::find($user->created_by); // this is agent
     
+        // Traverse up to find the Agent's Master
         while ($agent && $agent->role->name !== 'Master') {
             $agent = User::find($agent->created_by);
         }
     
         if ($agent && $agent->role->name === 'Master') {
             $bet = Bets::where('user_id', $userId)->first();
+    
+            // Retrieve the Agent's commission rates
+            $agentSingleCommission = SingleCommissions::where('user_id', $agent->created_by)->first();
+            $agentMixCommission = MixBetCommissions::where('user_id', $agent->created_by)->first();
+    
             if ($bet->bet_type === 'single') {
                 $singleCommission = SingleCommissions::where('user_id', $agent->id)->first();
                 $isHigh = $bet->match->high;
-                $commission = $isHigh ? $singleCommission->high : $singleCommission->low;
+    
+                // Retrieve the Master's commission rates
+                $masterCommissionRate = $isHigh ? $singleCommission->high : $singleCommission->low;
+                $agentCommissionRate = $isHigh ? $agentSingleCommission->high : $agentSingleCommission->low;
+    
+                // Calculate the Master’s commission by subtracting the Agent’s rate
+                $commission = max($masterCommissionRate - $agentCommissionRate, 0);
             } else {
                 $matchCount = Accumulator::where('bet_id', $bet->id)->count();
+    
+                // Retrieve the Master's mix commission
                 $mixCommission = MixBetCommissions::where('user_id', $agent->id)->first();
-
-                $commission = $mixCommission->{'m' . $matchCount} ?? 0;
+                $masterCommissionRate = $mixCommission->{'m' . $matchCount} ?? 0;
+                $agentCommissionRate = $agentMixCommission->{'m' . $matchCount} ?? 0;
+    
+                // Calculate the Master’s commission by subtracting the Agent’s rate
+                $commission = max($masterCommissionRate - $agentCommissionRate, 0);
             }
         }
+    
         return $commission;
     }
+    
     
     public function getReportsByMaster(Request $request,$masterId)
 {
@@ -237,6 +259,7 @@ class ReportController extends Controller
         DB::raw('SUM(commissions.master) as total_master_commission'),  
         DB::raw('SUM(commissions.senior) as total_senior_commission')  
     )
+    
     // ->whereBetween('reports.created_at', [$startDate, $endDate])
     ->get();
     return response()->json(['data'=>$reports],200);
@@ -247,13 +270,11 @@ class ReportController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        // Get the Master accounts created by the Senior
         $masterIds = User::where('created_by', $seniorId)
             ->whereHas('role', function ($query) {
                 $query->where('name', 'Master');
             })->pluck('id');
 
-        // Get all User reports under Agents created by these Masters
         $reports = Report::whereIn('user_id', function ($query) use ($masterIds) {
             $query->select('id')
                 ->from('users')
@@ -263,12 +284,12 @@ class ReportController extends Controller
                         ->whereIn('created_by', $masterIds);
                 });
         })
-        ->join('users as u', 'reports.user_id', '=', 'u.id') // Join with user table (for Users)
-        ->join('users as a', 'u.created_by', '=', 'a.id') // Join with Agent accounts
-        ->join('users as m', 'a.created_by', '=', 'm.id') // Join with Master accounts
-        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id') // Join commissions
-        ->whereIn('m.id', $masterIds) // Filter by Masters under this Senior
-        ->groupBy('m.id', 'm.username', 'm.realname') // Group by Master
+        ->join('users as u', 'reports.user_id', '=', 'u.id')
+        ->join('users as a', 'u.created_by', '=', 'a.id')
+        ->join('users as m', 'a.created_by', '=', 'm.id')
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+        ->whereIn('m.id', $masterIds)
+        ->groupBy('m.id', 'm.username', 'm.realname')
         ->select(
             'm.id as master_id',
             'm.username as master_username',
@@ -287,7 +308,6 @@ class ReportController extends Controller
         // ->whereBetween('reports.created_at', [$startDate, $endDate]) // Apply date filter if needed
         ->get();
 
-        // Return the reports as a JSON response
         return response()->json(['data'=>$reports],200);
     }
     public function getReportsBySSenior(Request $request, $sseniorId)
