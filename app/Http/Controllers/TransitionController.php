@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Transition;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class TransitionController extends Controller
@@ -72,7 +74,7 @@ class TransitionController extends Controller
                         "user_id" => $request->user_id,
                         "description"=>"From ".$loggedUser->username,
                         "amount" => $amount,
-                        "OUT"=>$amount,
+                        "IN"=>$amount,
                         "balance"=>$user->balance
                     ]);
                     
@@ -170,7 +172,53 @@ class TransitionController extends Controller
     public function userTransition(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
-
+        // $user = User::where('username', $username)->first();
+    
         $userId = auth()->user()->id;
+        
+        $dailySummaries = DB::table('transitions')
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(`IN`) as total_in'),   
+                DB::raw('SUM(`Win`) as total_win'),
+                DB::raw('SUM(`Bet`) as total_bet'),
+                DB::raw('SUM(`OUT`) as total_out')
+            )
+            ->where('user_id', $userId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get()
+            ->map(function($summary) {
+
+                $date = \Carbon\Carbon::parse($summary->date);
+                $summary->start = $date->startOfDay()->toDateTimeString();
+                $summary->end = $date->endOfDay()->toDateTimeString();
+                return $summary;
+            });
+    
+        return response()->json($dailySummaries);
     }
+
+    public function userTransitionDetails(Request $request)
+    {
+        $date = $request->query('date');
+        $userId = auth()->user()->id;
+    
+        $transitions = Transition::select('description', 'type', 'amount', 'created_at')
+            ->where('user_id', $userId)
+            ->whereDate('created_at', $date)
+            ->get()
+            ->map(function ($transition) {
+                return [
+                    'description' => $transition->description,
+                    'type' => $transition->type,
+                    'amount' => $transition->amount,
+                    'created_at' => Carbon::parse($transition->created_at)->format('Y-m-d H:i:s'), 
+                ];
+            });
+    
+        return response()->json($transitions);
+    }
+    
 }

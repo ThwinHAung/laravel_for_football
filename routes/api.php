@@ -14,8 +14,6 @@ Route::post("login", [AuthController::class,"login"]);
 
 Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
 Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
-Route::get("agentReport/{name}", [ReportController::class,"getReportsByAgent"]);
-Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
 
 
 
@@ -55,10 +53,13 @@ Route::group([
     Route::get("retrieve_matchesHistory",[MatchesController::class,'matchHistory']);
     Route::get("getBetSlip/{id}",[BetController::class,'getOutstandingBetSlip']);
     Route::get("getPayoutBetSlip/{id}",[BetController::class,'getPayoutBetSlip']);
-   
+    Route::get("agentReport/{name}", [ReportController::class,"getReportsByAgent"]);
+    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
+    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
 
     Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
-    Route::get("getAccumulatorBetSlip/{bet_id}",[BetController::class,'getAccumulatorBetSlip']);
+    Route::get("getUserTrasition",[TransitionController::class,'userTransition']);
+    Route::get("getUserTrasitionDetail",[TransitionController::class,'userTransitionDetails']);
 
     Route::get("agentReportGroup",[ReportController::class,'getGroupReportsByAgent']);
 

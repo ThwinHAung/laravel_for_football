@@ -110,6 +110,7 @@ class PostponeService {
                     'description' => 'Win (Bet ID: ' . $bet->id . ')',
                     'type' => 'IN',
                     'amount' => $bet->wining_amount,
+                    'WIN'=>$bet->wining_amount,
                     'balance' => $user->balance
                 ]);
             }
