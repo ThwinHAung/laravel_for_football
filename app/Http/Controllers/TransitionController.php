@@ -169,7 +169,7 @@ class TransitionController extends Controller
         return response()->json($formattedTransactions);
     }
 
-    public function userTransition(Request $request){
+    public function userTransitionWithDate(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         // $user = User::where('username', $username)->first();
@@ -186,6 +186,37 @@ class TransitionController extends Controller
             )
             ->where('user_id', $userId)
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get()
+            ->map(function($summary) {
+
+                $date = \Carbon\Carbon::parse($summary->date);
+                $summary->start = $date->startOfDay()->toDateTimeString();
+                $summary->end = $date->endOfDay()->toDateTimeString();
+                return $summary;
+            });
+    
+        return response()->json($dailySummaries);
+    }
+
+    public function userTransition(){
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+        // $user = User::where('username', $username)->first();
+    
+        $userId = auth()->user()->id;
+        
+        $dailySummaries = DB::table('transitions')
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(`IN`) as total_in'),   
+                DB::raw('SUM(`Win`) as total_win'),
+                DB::raw('SUM(`Bet`) as total_bet'),
+                DB::raw('SUM(`OUT`) as total_out')
+            )
+            ->where('user_id', $userId)
+            ->whereBetween('created_at', [$startOfYesterday, $endOfToday])
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date')
             ->get()

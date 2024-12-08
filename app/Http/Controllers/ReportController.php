@@ -8,12 +8,13 @@ use App\Models\MixBetCommissions;
 use App\Models\Report;
 use App\Models\SingleCommissions;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    public function getGroupReportsByAgent(Request $request)
+    public function getGroupReportsByAgentWithDate(Request $request)
     {
         $agentId = auth()->user()->id;
         $startDate = $request->query('start_date');
@@ -48,11 +49,67 @@ class ReportController extends Controller
     
         if ($reports->isEmpty()) {
             return response()->json(['message' => 'No reports found for these users.'], 404);
+        }      
+        
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+
+    public function getGroupReportsByAgent(Request $request)
+    {
+        $agentId = auth()->user()->id;
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+        
+        $userIds = User::where('created_by', $agentId)->pluck('id');
+        if ($userIds->isEmpty()) {
+            return response()->json(['message' => 'No users found for this agent.'], 404);
         }
     
-        return response()->json(['data' => $reports], 200);
-    }
+        $reports = Report::whereIn('user_id', $userIds)
+            ->join('users', 'reports.user_id', '=', 'users.id')
+            ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+            ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
+            ->select(
+                'users.username',      
+                'users.realname', 
+                DB::raw("SUM(reports.turnover) as total_turnover"),
+                DB::raw("SUM(reports.valid_amount) as total_valid_amount"),
+                DB::raw("
+                    SUM(CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) as total_adjusted_win_loss
+                "),
+                DB::raw("SUM(commissions.master) as total_master"),  
+                DB::raw("SUM(commissions.agent) as total_agent"),
+                // 'reports.created_at' 'reports.created_at'
+            )
+            ->groupBy('users.username', 'users.realname',) 
+            ->get();
     
+        if ($reports->isEmpty()) {
+            return response()->json(['message' => 'No reports found for these users.'], 404);
+        }
+    
+        $startDate = $startOfYesterday->toDateString();
+        $endDate = $endOfToday->toDateString();        
+        
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
 
     public function getReportsByAgent(Request $request,$username)
 {
@@ -222,12 +279,14 @@ class ReportController extends Controller
         return $commission;
     }
     
-    
-    public function getReportsByMaster(Request $request,$masterId)
+    //Master Report Group
+    public function getReportsByMaster(Request $request)
 {
-    $startDate = $request->input('start_date');  
-    $endDate = $request->input('end_date');
 
+    $endOfToday = Carbon::tomorrow()->subSecond();
+    $startOfYesterday = Carbon::yesterday();
+
+    $masterId = auth()->user()->id;
     $agentIds = User::where('created_by', $masterId)
         ->whereHas('role', function ($query) {
             $query->where('name', 'Agent');
@@ -260,13 +319,189 @@ class ReportController extends Controller
         DB::raw('SUM(commissions.senior) as total_senior_commission')  
     )
     
-    // ->whereBetween('reports.created_at', [$startDate, $endDate])
+    ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
     ->get();
-    return response()->json(['data'=>$reports],200);
+    $startDate = $startOfYesterday->toDateString();
+    $endDate = $endOfToday->toDateString();        
+    
+    $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+        $report->start_date = $startDate;
+        $report->end_date = $endDate;
+        return $report;
+    });
+    return response()->json([
+        'data' => $reports
+    ], 200);
     }
 
-    public function getReportsBySenior(Request $request, $seniorId)
+    public function getReportsByMasterWithDate(Request $request)
     {
+        $startDate = $request->input('start_date');  
+        $endDate = $request->input('end_date');
+    
+        $masterId = auth()->user()->id;
+        $agentIds = User::where('created_by', $masterId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Agent');
+            })->pluck('id');
+    
+        $reports = Report::whereIn('user_id', function($query) use ($agentIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', $agentIds);
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')
+        ->join('users as a', 'u.created_by', '=', 'a.id')  
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id') 
+        ->whereIn('a.id', $agentIds)  
+        ->groupBy('a.id', 'a.username', 'a.realname') 
+        
+        ->select(
+            'a.id as agent_id',
+            'a.username as agent_username',
+            'a.realname as agent_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.master) as total_master_commission'),  
+            DB::raw('SUM(commissions.senior) as total_senior_commission')  
+        )
+        
+        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->get();
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+
+    public function getGroupReportsByMaster_AgentWithDate(Request $request,$username)
+    {
+        $user = User::where('username', $username)->first();
+    
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+    
+        $agentId = $user->id;
+
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        $userIds = User::where('created_by', $agentId)->pluck('id');
+        if ($userIds->isEmpty()) {
+            return response()->json(['message' => 'No users found for this agent.'], 404);
+        }
+    
+        $reports = Report::whereIn('user_id', $userIds)
+            ->join('users', 'reports.user_id', '=', 'users.id')
+            ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+            ->whereBetween('reports.created_at', [$startDate, $endDate])
+            ->select(
+                'users.username',      
+                'users.realname', 
+                DB::raw("SUM(reports.turnover) as total_turnover"),
+                DB::raw("SUM(reports.valid_amount) as total_valid_amount"),
+                DB::raw("
+                    SUM(CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) as total_adjusted_win_loss
+                "),
+                DB::raw("SUM(commissions.master) as total_master"),  
+                DB::raw("SUM(commissions.agent) as total_agent"),
+                // 'reports.created_at' 'reports.created_at'
+            )
+            ->groupBy('users.username', 'users.realname',) 
+            ->get();
+    
+        if ($reports->isEmpty()) {
+            return response()->json(['message' => 'No reports found for these users.'], 404);
+        }      
+        
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+
+    ////Senior Report Group
+    public function getReportsBySenior(Request $request)
+    {
+        $seniorId = auth()->user()->id;
+
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+
+        $masterIds = User::where('created_by', $seniorId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Master');
+            })->pluck('id');
+
+        $reports = Report::whereIn('user_id', function ($query) use ($masterIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', function ($subQuery) use ($masterIds) {
+                    $subQuery->select('id')
+                        ->from('users')
+                        ->whereIn('created_by', $masterIds);
+                });
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')
+        ->join('users as a', 'u.created_by', '=', 'a.id')
+        ->join('users as m', 'a.created_by', '=', 'm.id')
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+        ->whereIn('m.id', $masterIds)
+        ->groupBy('m.id', 'm.username', 'm.realname')
+        ->select(
+            'm.id as master_id',
+            'm.username as master_username',
+            'm.realname as master_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.senior) as total_senior_commission'),
+            DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
+        )
+        ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday]) // Apply date filter if needed
+        ->get();
+
+        $startDate = $startOfYesterday->toDateString();
+        $endDate = $endOfToday->toDateString();        
+        
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+
+    public function getReportsBySeniorWithDate(Request $request)
+    {
+        $seniorId = auth()->user()->id;
+
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
@@ -303,18 +538,150 @@ class ReportController extends Controller
                 END) as total_win_loss
             "),
             DB::raw('SUM(commissions.senior) as total_senior_commission'),
-            DB::raw('SUM(commissions.master) as total_master_commission')
+            DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
-        // ->whereBetween('reports.created_at', [$startDate, $endDate]) // Apply date filter if needed
+        ->whereBetween('reports.created_at', [$startDate, $endDate]) // Apply date filter if needed
         ->get();
 
-        return response()->json(['data'=>$reports],200);
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
     }
-    public function getReportsBySSenior(Request $request, $sseniorId)
+
+    public function getReportsBySenior_masterWithDate(Request $request,$username)
+    {
+        $startDate = $request->input('start_date');  
+        $endDate = $request->input('end_date');
+
+        $user = User::where('username', $username)->first();
+    
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        $masterId = $user->id;
+    
+        $agentIds = User::where('created_by', $masterId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Agent');
+            })->pluck('id');
+    
+        $reports = Report::whereIn('user_id', function($query) use ($agentIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', $agentIds);
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')
+        ->join('users as a', 'u.created_by', '=', 'a.id')  
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id') 
+        ->whereIn('a.id', $agentIds)  
+        ->groupBy('a.id', 'a.username', 'a.realname') 
+        
+        ->select(
+            'a.id as agent_id',
+            'a.username as agent_username',
+            'a.realname as agent_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.master) as total_master_commission'),  
+            DB::raw('SUM(commissions.senior) as total_senior_commission')  
+        )
+        
+        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->get();
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+
+    ////SSenior Report Group
+    public function getReportsBySSenior(Request $request)
+    {
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+    
+        $sseniorId = auth()->user()->id;
+        
+        $seniorIds = User::where('created_by', $sseniorId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Senior');
+            })->pluck('id');
+        
+        $reports = Report::whereIn('user_id', function ($query) use ($seniorIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', function ($subQuery) use ($seniorIds) {
+                    $subQuery->select('id')
+                        ->from('users')
+                        ->whereIn('created_by', function ($subSubQuery) use ($seniorIds) {
+                            $subSubQuery->select('id')
+                                ->from('users')
+                                ->whereIn('created_by', $seniorIds);
+                        });
+                });
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')  
+        ->join('users as a', 'u.created_by', '=', 'a.id')      
+        ->join('users as m', 'a.created_by', '=', 'm.id')      
+        ->join('users as s', 'm.created_by', '=', 's.id')      
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')  
+        ->whereIn('s.id', $seniorIds)   
+        ->groupBy('s.id', 's.username', 's.realname')   
+        ->select(
+            's.id as senior_id',
+            's.username as senior_username',
+            's.realname as senior_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
+            DB::raw('SUM(commissions.senior) as total_senior_commission')
+        )
+        ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
+        ->get();
+    
+        $startDate = $startOfYesterday->toDateString();
+        $endDate = $endOfToday->toDateString();        
+        
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+    public function getReportsBySSeniorWithDate(Request $request)
     {
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
-    
+
+        $sseniorId = auth()->user()->id;
+
         $seniorIds = User::where('created_by', $sseniorId)
             ->whereHas('role', function ($query) {
                 $query->where('name', 'Senior');
@@ -353,15 +720,155 @@ class ReportController extends Controller
                 END) as total_win_loss
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
-            // DB::raw('SUM(commissions.senior) as total_senior_commission'),    
+            DB::raw('SUM(commissions.senior) as total_senior_commission'),    
             // DB::raw('SUM(commissions.master) as total_master_commission')     
         )
-        // ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->whereBetween('reports.created_at', [$startDate, $endDate])
         ->get();
     
-        return response()->json(['data'=>$reports],200);
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
     }
+
+    public function getReportsBySSenior_seniorWithDate(Request $request,$username)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $user = User::where('username', $username)->first();
+    
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+        $seniorId = $user->id;
+
+        $masterIds = User::where('created_by', $seniorId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Master');
+            })->pluck('id');
+
+        $reports = Report::whereIn('user_id', function ($query) use ($masterIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', function ($subQuery) use ($masterIds) {
+                    $subQuery->select('id')
+                        ->from('users')
+                        ->whereIn('created_by', $masterIds);
+                });
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')
+        ->join('users as a', 'u.created_by', '=', 'a.id')
+        ->join('users as m', 'a.created_by', '=', 'm.id')
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+        ->whereIn('m.id', $masterIds)
+        ->groupBy('m.id', 'm.username', 'm.realname')
+        ->select(
+            'm.id as master_id',
+            'm.username as master_username',
+            'm.realname as master_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.senior) as total_senior_commission'),
+            DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
+        )
+        ->whereBetween('reports.created_at', [$startDate, $endDate]) // Apply date filter if needed
+        ->get();
+
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+    ////SSSenior Report Group
     public function getReportsBySSSenior(Request $request)
+    {
+        $endOfToday = Carbon::tomorrow()->subSecond();
+        $startOfYesterday = Carbon::yesterday();
+        $ssseniorId = 1;
+    
+        $sseniorIds = User::where('created_by', $ssseniorId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'SSenior');
+            })->pluck('id');
+    
+        $seniorIds = User::whereIn('created_by', $sseniorIds)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Senior');
+            })->pluck('id');
+    
+        $masterIds = User::whereIn('created_by', $seniorIds)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Master');
+            })->pluck('id');
+    
+        $agentIds = User::whereIn('created_by', $masterIds)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Agent');
+            })->pluck('id');
+    
+        $reports = Report::whereIn('user_id', function ($query) use ($agentIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', $agentIds);
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')
+        ->join('users as a', 'u.created_by', '=', 'a.id') 
+        ->join('users as m', 'a.created_by', '=', 'm.id') 
+        ->join('users as s', 'm.created_by', '=', 's.id') 
+        ->join('users as ss', 's.created_by', '=', 'ss.id') 
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
+        ->whereIn('ss.id', $sseniorIds)
+        ->groupBy('ss.id', 'ss.username', 'ss.realname')
+        ->select(
+            'ss.id as ssenior_id',
+            'ss.username as ssenior_username',
+            'ss.realname as ssenior_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
+        )
+        ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
+        ->get();
+
+        $startDate = $startOfYesterday->toDateString();
+        $endDate = $endOfToday->toDateString();        
+        
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
+
+    public function getReportsBySSSeniorWithDate(Request $request)
     {
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
@@ -416,8 +923,83 @@ class ReportController extends Controller
         )
         ->whereBetween('reports.created_at', [$startDate, $endDate])
         ->get();
+
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
     
-        return response()->json(['data'=>$reports],200);
+        return response()->json([
+            'data' => $reports
+        ], 200);
     }
+    public function getReportsBySSSenior_SSenior(Request $request,$username)
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $user = User::where('username', $username)->first();
     
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        $sseniorId = $user->id;
+
+        $seniorIds = User::where('created_by', $sseniorId)
+            ->whereHas('role', function ($query) {
+                $query->where('name', 'Senior');
+            })->pluck('id');
+    
+        $reports = Report::whereIn('user_id', function ($query) use ($seniorIds) {
+            $query->select('id')
+                ->from('users')
+                ->whereIn('created_by', function ($subQuery) use ($seniorIds) {
+                    $subQuery->select('id')
+                        ->from('users')
+                        ->whereIn('created_by', function ($subSubQuery) use ($seniorIds) {
+                            $subSubQuery->select('id')
+                                ->from('users')
+                                ->whereIn('created_by', $seniorIds);
+                        });
+                });
+        })
+        ->join('users as u', 'reports.user_id', '=', 'u.id')  
+        ->join('users as a', 'u.created_by', '=', 'a.id')      
+        ->join('users as m', 'a.created_by', '=', 'm.id')      
+        ->join('users as s', 'm.created_by', '=', 's.id')      
+        ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')  
+        ->whereIn('s.id', $seniorIds)   
+        ->groupBy('s.id', 's.username', 's.realname')   
+        ->select(
+            's.id as senior_id',
+            's.username as senior_username',
+            's.realname as senior_realname',
+            DB::raw('SUM(reports.turnover) as total_turnover'),
+            DB::raw('SUM(reports.valid_amount) as total_valid_amount'),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) as total_win_loss
+            "),
+            DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
+            DB::raw('SUM(commissions.senior) as total_senior_commission'),    
+            // DB::raw('SUM(commissions.master) as total_master_commission')     
+        )
+        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->get();
+    
+        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
+            $report->start_date = $startDate;
+            $report->end_date = $endDate;
+            return $report;
+        });
+    
+        return response()->json([
+            'data' => $reports
+        ], 200);
+    }
 }
+

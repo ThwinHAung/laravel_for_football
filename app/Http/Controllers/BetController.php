@@ -259,7 +259,7 @@ class BetController extends Controller
     
         return response()->json($response);
     }
-    public function getPayoutBetSlip (Request $request,$username){
+    public function getPayoutBetSlipWithDate (Request $request,$username){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
@@ -271,6 +271,54 @@ class BetController extends Controller
 
         $user_id = $user->id;
     
+        $singleBets = DB::table('bets')
+        ->select(
+            'id',
+            'match_id',
+            'selected_outcome',
+            'amount',
+            'status',
+            'wining_amount',
+            DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') as created_at")
+        )
+        ->where('user_id', $user_id)
+        ->where('bet_type', 'single')
+        ->where('bets.status', '!=', 'Accepted')
+        ->whereBetween('bets.created_at', [$startDate, $endDate])
+        ->get();
+
+
+        $accumulatorBets = DB::table('bets')
+        ->leftJoin('accumulators', 'bets.id', '=', 'accumulators.bet_id')
+        ->select(
+            'bets.id',
+            'bets.amount',
+            'bets.status',
+            'bets.wining_amount',
+            'bets.created_at',
+            DB::raw('COUNT(accumulators.id) AS match_count')
+        )
+        ->where('bets.user_id', $user_id)
+        ->where('bets.bet_type', 'accumulator')
+        ->where('bets.status', '!=', 'Accepted')
+        ->whereBetween('bets.created_at', [$startDate, $endDate])
+        ->groupBy('bets.id', 'bets.amount', 'bets.status', 'bets.wining_amount','bets.created_at')
+        ->get();
+
+        return response()->json(['messsage'=>'Successful fetch','singleBets' => $singleBets,'accumulatorBets'=>$accumulatorBets]);    
+    }
+
+    public function getPayoutBetSlip ($username)
+    {
+        $user = User::where('username', $username)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        $user_id = $user->id;
+        $startDate = Carbon::now()->startOfDay()->toDateTimeString();
+        $endDate = Carbon::now()->endOfDay()->toDateTimeString(); 
+
         $singleBets = DB::table('bets')
         ->select(
             'id',

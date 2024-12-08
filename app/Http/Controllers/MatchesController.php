@@ -40,6 +40,20 @@ class MatchesController extends Controller
         
         return response()->json($pending_matches, 200);
     }
+
+    public function matchHistoryWithDate(Request $request)
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+    
+        $pending_matches = Matches::where('IsEnd', true)
+            ->select('matches.id', 'matches.League', 'matches.HomeTeam', 'matches.AwayTeam', 'matches.MatchTime', 'matches.HomeGoal', 'matches.AwayGoal')
+            ->whereBetween('matches.created_at', [$startDate, $endDate])
+            ->get();
+        
+        return response()->json($pending_matches, 200);
+    }
+
     public function updateMatches(Request $request)
     {
         $data = $request->all();

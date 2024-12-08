@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::post("login", [AuthController::class,"login"]);
 
-Route::post('v4N1/upload_match',[MatchesController::class,'updateMatches']);
+Route::post('v4N1/upload_match',action: [MatchesController::class,'updateMatches']);
 Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
+
 
 
 
@@ -44,28 +45,52 @@ Route::group([
     Route::get("getmemberCount", [StatusController::class,"member_count"]);
     Route::get("getdownlineBalance", [StatusController::class,"down_line"]);
     Route::get("getoutstandingBalance", [StatusController::class,"outstanding_balance"]);
-    Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
+    Route::get("getUserTrasition",[TransitionController::class,'userTransition']);
+
+     Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
     Route::get("getTransactionsForDate/{id}/{date}",[TransitionController::class,'fetchTransactionsForDate']);
     Route::get("getmemberlist", [AuthController::class,"getCreatedUsers"]);
     Route::get("getUserDetails/{id}", [AuthController::class,"getUserDetails"]);
     Route::get("get_balance",[AuthController::class,"balance"]);
     Route::get("maxAmountBets/{username}",[StatusController::class,"getMixBets"]);
+
     Route::get("retrieve_matchesHistory",[MatchesController::class,'matchHistory']);
+    Route::get("retrieve_matchesHistoryWithDate",[MatchesController::class,'matchHistoryWithDate']);
+    Route::get("getUserTrasitionWithDate",[TransitionController::class,'userTransitionWithDate']);
+    Route::get("getUserTrasitionDetail",[TransitionController::class,'userTransitionDetails']);
     Route::get("getBetSlip/{id}",[BetController::class,'getOutstandingBetSlip']);
     Route::get("getPayoutBetSlip/{id}",[BetController::class,'getPayoutBetSlip']);
+    Route::get("getPayoutBetSlipWithDate/{id}",[BetController::class,'getPayoutBetSlipWithDate']);
+
+
+    //Agent Report Group
+    Route::get("agentReportGroupWithDate",[ReportController::class,'getGroupReportsByAgentWithDate']);
+    Route::get("agentReportGroup",[ReportController::class,'getGroupReportsByAgent']);
+    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
     Route::get("agentReport/{name}", [ReportController::class,"getReportsByAgent"]);
-    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
-    Route::get("report_getBetDetail/{bet_id}", [ReportController::class,"getUserBetDetailsAtAgentPage"]);
+
+
+    //Master Report Group
+    Route::get("masterReport", action: [ReportController::class,"getReportsByMaster"]);
+    Route::get("masterReportWithDate", action: [ReportController::class,"getReportsByMasterWithDate"]);
+    Route::get("master_agentReportWithDate/{username}", action: [ReportController::class,"getGroupReportsByMaster_AgentWithDate"]);
+    //Senior Report Group
+    Route::get("seniorReport", [ReportController::class,"getReportsBySenior"]);
+    Route::get("seniorReportWithDate", [ReportController::class,"getReportsBySeniorWithDate"]);
+    Route::get("senior_masterReportWithDate/{username}", [ReportController::class,"getReportsBySenior_masterWithDate"]);
+
+    //SSenior Report Group
+
+    Route::get("sseniorReportWithDate", [ReportController::class,"getReportsBySSeniorWithDate"]);
+    Route::get("sseniorReport", [ReportController::class,"getReportsBySSenior"]);
+    Route::get("ssenior_seniorReport/{username}", [ReportController::class,"getReportsBySSenior_seniorWithDate"]);
+    //SSSenior Report Group
+
+    Route::get("ssseniorReportWithDate", [ReportController::class,"getReportsBySSSeniorWithDate"]);
+    Route::get("sssenior_sseniorReport/{username}", [ReportController::class,"getReportsBySSSenior_SSenior"]);
+    Route::get("ssseniorReport", [ReportController::class,"getReportsBySSSenior"]);
+
 
     Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
-    Route::get("getUserTrasition",[TransitionController::class,'userTransition']);
-    Route::get("getUserTrasitionDetail",[TransitionController::class,'userTransitionDetails']);
-
-    Route::get("agentReportGroup",[ReportController::class,'getGroupReportsByAgent']);
-
-    Route::get("masterReport/{master_id}", [ReportController::class,"getReportsByMaster"]);
-    Route::get("seniorReport/{senior_id}", [ReportController::class,"getReportsBySenior"]);
-    Route::get("sseniorReport/{ssenior_id}", [ReportController::class,"getReportsBySSenior"]);
-    Route::get("ssseniorReport", [ReportController::class,"getReportsBySSSenior"]);
     Route::get("logout",[AuthController::class,"logout"]);
 });
