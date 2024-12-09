@@ -17,8 +17,8 @@ class ReportController extends Controller
     public function getGroupReportsByAgentWithDate(Request $request)
     {
         $agentId = auth()->user()->id;
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
         
         $userIds = User::where('created_by', $agentId)->pluck('id');
         if ($userIds->isEmpty()) {
@@ -114,8 +114,8 @@ class ReportController extends Controller
     public function getReportsByAgent(Request $request,$username)
 {
     // $agentId = auth()->user()->id;
-    $startDate = $request->query('start_date');
-    $endDate = $request->query('end_date');
+    $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+    $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
     
     // $userIds = User::where('created_by', $agentId)->pluck('id');
     // if ($userIds->isEmpty()) {
@@ -336,8 +336,8 @@ class ReportController extends Controller
 
     public function getReportsByMasterWithDate(Request $request)
     {
-        $startDate = $request->input('start_date');  
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
     
         $masterId = auth()->user()->id;
         $agentIds = User::where('created_by', $masterId)
@@ -395,8 +395,8 @@ class ReportController extends Controller
     
         $agentId = $user->id;
 
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
         
         $userIds = User::where('created_by', $agentId)->pluck('id');
         if ($userIds->isEmpty()) {
@@ -502,8 +502,8 @@ class ReportController extends Controller
     {
         $seniorId = auth()->user()->id;
 
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $masterIds = User::where('created_by', $seniorId)
             ->whereHas('role', function ($query) {
@@ -556,8 +556,8 @@ class ReportController extends Controller
 
     public function getReportsBySenior_masterWithDate(Request $request,$username)
     {
-        $startDate = $request->input('start_date');  
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $user = User::where('username', $username)->first();
     
@@ -660,7 +660,8 @@ class ReportController extends Controller
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
             DB::raw('SUM(commissions.senior) as total_senior_commission')
         )
-        ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
+        ->where('reports.created_at', '>=', $startOfYesterday)
+        ->where('reports.created_at', '<=', $endOfToday)
         ->get();
     
         $startDate = $startOfYesterday->toDateString();
@@ -677,8 +678,8 @@ class ReportController extends Controller
     }
     public function getReportsBySSeniorWithDate(Request $request)
     {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $sseniorId = auth()->user()->id;
 
@@ -723,7 +724,8 @@ class ReportController extends Controller
             DB::raw('SUM(commissions.senior) as total_senior_commission'),    
             // DB::raw('SUM(commissions.master) as total_master_commission')     
         )
-        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->where('reports.created_at', '>=', $startDate)
+        ->where('reports.created_at', '<=', $endDate)
         ->get();
     
         $reports = $reports->map(function ($report) use ($startDate, $endDate) {
@@ -739,8 +741,8 @@ class ReportController extends Controller
 
     public function getReportsBySSenior_seniorWithDate(Request $request,$username)
     {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $user = User::where('username', $username)->first();
     
@@ -784,7 +786,8 @@ class ReportController extends Controller
             DB::raw('SUM(commissions.senior) as total_senior_commission'),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
-        ->whereBetween('reports.created_at', [$startDate, $endDate]) // Apply date filter if needed
+        ->where('reports.created_at', '>=', $startDate)
+        ->where('reports.created_at', '<=', $endDate)// Apply date filter if needed
         ->get();
 
         $reports = $reports->map(function ($report) use ($startDate, $endDate) {
@@ -851,7 +854,8 @@ class ReportController extends Controller
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
-        ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
+        ->where('reports.created_at', '>=', $startOfYesterday)
+        ->where('reports.created_at', '<=', $endOfToday)
         ->get();
 
         $startDate = $startOfYesterday->toDateString();
@@ -870,8 +874,8 @@ class ReportController extends Controller
 
     public function getReportsBySSSeniorWithDate(Request $request)
     {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
         $ssseniorId = auth()->user()->id;
     
         $sseniorIds = User::where('created_by', $ssseniorId)
@@ -921,7 +925,8 @@ class ReportController extends Controller
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
-        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->where('reports.created_at', '>=', $startDate)
+        ->where('reports.created_at', '<=', $endDate)
         ->get();
 
         $reports = $reports->map(function ($report) use ($startDate, $endDate) {
@@ -936,8 +941,8 @@ class ReportController extends Controller
     }
     public function getReportsBySSSenior_SSenior(Request $request,$username)
     {
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
+        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
 
         $user = User::where('username', $username)->first();
     
@@ -988,7 +993,8 @@ class ReportController extends Controller
             DB::raw('SUM(commissions.senior) as total_senior_commission'),    
             // DB::raw('SUM(commissions.master) as total_master_commission')     
         )
-        ->whereBetween('reports.created_at', [$startDate, $endDate])
+        ->where('reports.created_at', '>=', $startDate)
+        ->where('reports.created_at', '<=', $endDate)
         ->get();
     
         $reports = $reports->map(function ($report) use ($startDate, $endDate) {
