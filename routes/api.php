@@ -92,5 +92,6 @@ Route::group([
 
 
     Route::get("getSingleBetSlip/{bet_id}",[BetController::class,'getSingleBetSlip']);
+    Route::get("getAccumulatorBetSlip/{bet_id}",[BetController::class,'getAccumulatorBetSlip']);
     Route::get("logout",[AuthController::class,"logout"]);
 });
