@@ -367,7 +367,7 @@ class PayoutService
                         'bet_id'=>$bet->id,
                         'commissions_id'=>$commission_id,
                         'turnover'=>$bet->amount,
-                        'valid_amount'=> $winningAmount,
+                        'valid_amount'=>$bet->amount,
                         'win_loss'=> $netWinnings,
                         'type'=> 'Los'
         ,            ]);
@@ -391,7 +391,7 @@ class PayoutService
     
     protected function getTaxRate(Matches $match)
     {
-        return $match->high ? 0.06 : 0.08;
+        return $match->high ? 0.05 : 0.08;
     }       
     protected function getAccumulatorTaxRate($matchCount)
     {
