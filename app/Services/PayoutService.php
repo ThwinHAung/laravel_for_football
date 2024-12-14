@@ -44,11 +44,12 @@ class PayoutService
 
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
-        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount,$match);
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
+        $winningAmount = $potentialWinningAmount - $bet->amount;
+        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $winningAmount,$match);
 
         if ($potentialWinningAmount > $bet->amount) {
-            $winningAmount = $potentialWinningAmount - $bet->amount;
+
             $taxRate = $this->getTaxRate($match);
             $taxAmount = $winningAmount * $taxRate;
             $netWinnings = $winningAmount - $taxAmount;
@@ -111,6 +112,7 @@ class PayoutService
                 'type'=> 'Win'
 ,            ]);
         }
+
     }
 
     protected function calculatePotentialWinningAmount(Bets $bet,Matches $match){

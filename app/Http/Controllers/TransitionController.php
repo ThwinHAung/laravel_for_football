@@ -172,7 +172,6 @@ class TransitionController extends Controller
     public function userTransitionWithDate(Request $request){
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
-        // $user = User::where('username', $username)->first();
     
         $userId = auth()->user()->id;
         

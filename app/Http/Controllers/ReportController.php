@@ -40,7 +40,7 @@ class ReportController extends Controller
                         ELSE reports.win_loss
                     END) as total_adjusted_win_loss
                 "),
-                DB::raw("SUM(commissions.master) as total_master"),  
+                DB::raw("SUM(commissions.user) as total_user"),  
                 DB::raw("SUM(commissions.agent) as total_agent"),
                 // 'reports.created_at' 'reports.created_at'
             )
@@ -87,7 +87,7 @@ class ReportController extends Controller
                         ELSE reports.win_loss
                     END) as total_adjusted_win_loss
                 "),
-                DB::raw("SUM(commissions.master) as total_master"),  
+                DB::raw("SUM(commissions.user) as total_user"),  
                 DB::raw("SUM(commissions.agent) as total_agent"),
                 // 'reports.created_at' 'reports.created_at'
             )
@@ -138,7 +138,7 @@ class ReportController extends Controller
                     ELSE reports.win_loss
                 END as adjusted_win_loss
             "),
-            'commissions.master',  
+            'commissions.user',  
             'commissions.agent',
             'reports.bet_id'
         )
