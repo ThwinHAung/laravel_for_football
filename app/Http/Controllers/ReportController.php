@@ -37,6 +37,7 @@ class ReportController extends Controller
                 DB::raw("
                     SUM(CASE 
                         WHEN reports.type = 'Los' THEN -reports.win_loss
+                        WHEN reports.type = 'Refund' THEN 0
                         ELSE reports.win_loss
                     END) as total_adjusted_win_loss
                 "),
@@ -84,6 +85,7 @@ class ReportController extends Controller
                 DB::raw("
                     SUM(CASE 
                         WHEN reports.type = 'Los' THEN -reports.win_loss
+                        WHEN reports.type = 'Refund' THEN 0
                         ELSE reports.win_loss
                     END) as total_adjusted_win_loss
                 "),
@@ -135,6 +137,7 @@ class ReportController extends Controller
             DB::raw("
                 CASE 
                     WHEN reports.type = 'Los' THEN -reports.win_loss
+                    WHEN reports.type = 'Refund' THEN 0
                     ELSE reports.win_loss
                 END as adjusted_win_loss
             "),

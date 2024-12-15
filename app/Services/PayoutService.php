@@ -45,10 +45,9 @@ class PayoutService
     protected function calculateSingleBetPayout(Bets $bet, Matches $match)
     {
         $potentialWinningAmount = $this->calculatePotentialWinningAmount($bet, $match);
-        $winningAmount = $potentialWinningAmount - $bet->amount;
-        $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $winningAmount,$match);
 
         if ($potentialWinningAmount > $bet->amount) {
+            $winningAmount = $potentialWinningAmount - $bet->amount;
 
             $taxRate = $this->getTaxRate($match);
             $taxAmount = $winningAmount * $taxRate;
@@ -67,6 +66,7 @@ class PayoutService
                 'Win'=>$bet->wining_amount,
                 'balance'=>$user->balance
             ]);
+            $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $winningAmount,$match);
             Report::create([
                 'user_id'=>$bet->user_id,
                 'bet_id'=>$bet->id,
@@ -90,6 +90,7 @@ class PayoutService
                 'Win'=>$bet->wining_amount,
                 'balance'=>$user->balance
             ]);
+            $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $potentialWinningAmount,$match);
             Report::create([
                 'user_id'=>$bet->user_id,
                 'bet_id'=>$bet->id,
@@ -102,6 +103,7 @@ class PayoutService
         }else{
             $bet->status = 'Lose';
             $bet->save();
+            $commission_id = $this->calculateSingleBetCommission($bet, $bet->user_id, $bet->amount,$match);
             Report::create([
                 'user_id'=>$bet->user_id,
                 'bet_id'=>$bet->id,
@@ -341,7 +343,6 @@ class PayoutService
                 if ($accumulatorBets->where('status', 'Lose')->count() > 0) {
                     $bet->status = 'Lose';
                     $bet->wining_amount = 0;
-                    $bet->status = 'Lose';
                     $bet->save();
                     Report::create([
                         'user_id'=>$bet->user_id,
@@ -364,6 +365,7 @@ class PayoutService
 
                     $bet->wining_amount = $netWinnings;
                     $bet->status = 'Win';
+                    $bet->save();
                     Report::create([
                         'user_id'=>$bet->user_id,
                         'bet_id'=>$bet->id,
@@ -374,8 +376,6 @@ class PayoutService
                         'type'=> 'Los'
         ,            ]);
                 }
-    
-                $bet->save();
                 $this->updateUserBalance($bet->user_id, $bet->wining_amount);
                 $user = User::find($bet->user_id);
                 Transition::create([
