@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('turnover', 11, 2)->default(0.0); 
             $table->decimal('valid_amount', 11, 2)->default(0.0); 
             $table->decimal('win_loss', 11, 2)->default(0.0);
-            $table->enum('type',['Win','Los'])->default('Win');
+            $table->enum('type',['Win','Los','Refund'])->default('Win');
             $table->timestamps(); 
         });
         Schema::table('reports',function (Blueprint $table){
