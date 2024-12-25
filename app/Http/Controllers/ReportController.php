@@ -65,8 +65,8 @@ class ReportController extends Controller
     public function getGroupReportsByAgent(Request $request)
     {
         $agentId = auth()->user()->id;
-        $endOfToday = Carbon::tomorrow()->subSecond();
-        $startOfYesterday = Carbon::yesterday();
+        $startOfRange = Carbon::today()->addHours(12);
+        $endOfRange = Carbon::tomorrow()->addHours(12);
         
         $userIds = User::where('created_by', $agentId)->pluck('id');
         if ($userIds->isEmpty()) {
@@ -76,7 +76,7 @@ class ReportController extends Controller
         $reports = Report::whereIn('user_id', $userIds)
             ->join('users', 'reports.user_id', '=', 'users.id')
             ->join('commissions', 'reports.commissions_id', '=', 'commissions.id')
-            ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
+            ->whereBetween('reports.created_at', [$startOfRange, $endOfRange])
             ->select(
                 'users.username',      
                 'users.realname', 
@@ -100,12 +100,12 @@ class ReportController extends Controller
             return response()->json(['message' => 'No reports found for these users.'], 404);
         }
     
-        $startDate = $startOfYesterday->toDateString();
-        $endDate = $endOfToday->toDateString();        
+        $startOfRange = Carbon::today()->addHours(12);
+        $endOfRange = Carbon::tomorrow()->addHours(12);     
         
-        $reports = $reports->map(function ($report) use ($startDate, $endDate) {
-            $report->start_date = $startDate;
-            $report->end_date = $endDate;
+        $reports = $reports->map(function ($report) use ($startOfRange, $endOfRange) {
+            $report->start_date = $startOfRange;
+            $report->end_date = $endOfRange;
             return $report;
         });
         return response()->json([
