@@ -43,7 +43,34 @@ class ReportController extends Controller
                 "),
                 DB::raw("SUM(commissions.user) as total_user"),  
                 DB::raw("SUM(commissions.agent) as total_agent"),
-                // 'reports.created_at' 'reports.created_at'
+                DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.user
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_user
+                "),
+                DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.agent
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_agent
+                ")
             )
             ->groupBy('users.username', 'users.realname',) 
             ->get();
@@ -67,7 +94,7 @@ class ReportController extends Controller
         $agentId = auth()->user()->id;
         $startOfRange = Carbon::today()->addHours(12);
         $endOfRange = Carbon::tomorrow()->addHours(12);
-        
+    
         $userIds = User::where('created_by', $agentId)->pluck('id');
         if ($userIds->isEmpty()) {
             return response()->json(['message' => 'No users found for this agent.'], 404);
@@ -91,27 +118,54 @@ class ReportController extends Controller
                 "),
                 DB::raw("SUM(commissions.user) as total_user"),  
                 DB::raw("SUM(commissions.agent) as total_agent"),
-                // 'reports.created_at' 'reports.created_at'
+                DB::raw("
+                    SUM(CASE 
+                        WHEN reports.type IN ('Los', 'Win') THEN 
+                            (CASE 
+                                WHEN reports.type = 'Los' THEN -reports.win_loss
+                                ELSE reports.win_loss
+                            END) - commissions.user
+                        ELSE 
+                            (CASE 
+                                WHEN reports.type = 'Los' THEN -reports.win_loss
+                                ELSE reports.win_loss
+                            END)
+                    END) as total_adjusted_win_loss_with_user
+                "),
+                DB::raw("
+                    SUM(CASE 
+                        WHEN reports.type IN ('Los', 'Win') THEN 
+                            (CASE 
+                                WHEN reports.type = 'Los' THEN -reports.win_loss
+                                ELSE reports.win_loss
+                            END) - commissions.agent
+                        ELSE 
+                            (CASE 
+                                WHEN reports.type = 'Los' THEN -reports.win_loss
+                                ELSE reports.win_loss
+                            END)
+                    END) as total_adjusted_win_loss_with_agent
+                ")
             )
-            ->groupBy('users.username', 'users.realname',) 
+            ->groupBy('users.username', 'users.realname') 
             ->get();
     
         if ($reports->isEmpty()) {
             return response()->json(['message' => 'No reports found for these users.'], 404);
         }
     
-        $startOfRange = Carbon::today()->addHours(12);
-        $endOfRange = Carbon::tomorrow()->addHours(12);     
-        
         $reports = $reports->map(function ($report) use ($startOfRange, $endOfRange) {
             $report->start_date = $startOfRange;
             $report->end_date = $endOfRange;
             return $report;
         });
+    
         return response()->json([
             'data' => $reports
         ], 200);
     }
+    
+    
 
     public function getReportsByAgent(Request $request,$username)
 {
@@ -134,6 +188,7 @@ class ReportController extends Controller
             'users.realname', 
             'reports.turnover',
             'reports.valid_amount',
+            'reports.type',
             DB::raw("
                 CASE 
                     WHEN reports.type = 'Los' THEN -reports.win_loss
@@ -319,7 +374,35 @@ class ReportController extends Controller
             END) as total_win_loss
         "),
         DB::raw('SUM(commissions.master) as total_master_commission'),  
-        DB::raw('SUM(commissions.senior) as total_senior_commission')  
+        DB::raw('SUM(commissions.senior) as total_senior_commission'),
+        DB::raw("
+        SUM(CASE 
+            WHEN reports.type IN ('Los', 'Win') THEN 
+                (CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END) - commissions.master
+            ELSE 
+                (CASE 
+                    WHEN reports.type = 'Los' THEN -reports.win_loss
+                    ELSE reports.win_loss
+                END)
+        END) as total_adjusted_win_loss_with_master
+        "),
+        DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.senior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_senior
+        ")  
     )
     
     ->whereBetween('reports.created_at', [$startOfYesterday, $endOfToday])
@@ -372,7 +455,35 @@ class ReportController extends Controller
                 END) as total_win_loss
             "),
             DB::raw('SUM(commissions.master) as total_master_commission'),  
-            DB::raw('SUM(commissions.senior) as total_senior_commission')  
+            DB::raw('SUM(commissions.senior) as total_senior_commission'),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.master
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_master
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
+            ")
         )
         
         ->whereBetween('reports.created_at', [$startDate, $endDate])
@@ -421,8 +532,36 @@ class ReportController extends Controller
                         ELSE reports.win_loss
                     END) as total_adjusted_win_loss
                 "),
-                DB::raw("SUM(commissions.master) as total_master"),  
+                DB::raw("SUM(commissions.master) as total_user"),  
                 DB::raw("SUM(commissions.agent) as total_agent"),
+                DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.user
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_user
+                "),
+                DB::raw("
+                    SUM(CASE 
+                        WHEN reports.type IN ('Los', 'Win') THEN 
+                            (CASE 
+                                WHEN reports.type = 'Los' THEN -reports.win_loss
+                                ELSE reports.win_loss
+                            END) - commissions.agent
+                        ELSE 
+                            (CASE 
+                                WHEN reports.type = 'Los' THEN -reports.win_loss
+                                ELSE reports.win_loss
+                            END)
+                    END) as total_adjusted_win_loss_with_agent
+                ")
                 // 'reports.created_at' 'reports.created_at'
             )
             ->groupBy('users.username', 'users.realname',) 
@@ -482,6 +621,34 @@ class ReportController extends Controller
                     ELSE reports.win_loss
                 END) as total_win_loss
             "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
+            "),
             DB::raw('SUM(commissions.senior) as total_senior_commission'),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
@@ -540,6 +707,34 @@ class ReportController extends Controller
                     ELSE reports.win_loss
                 END) as total_win_loss
             "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
+            "),
             DB::raw('SUM(commissions.senior) as total_senior_commission'),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
@@ -597,6 +792,34 @@ class ReportController extends Controller
                     WHEN reports.type = 'Los' THEN -reports.win_loss
                     ELSE reports.win_loss
                 END) as total_win_loss
+            "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.master
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_master
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
             "),
             DB::raw('SUM(commissions.master) as total_master_commission'),  
             DB::raw('SUM(commissions.senior) as total_senior_commission')  
@@ -659,6 +882,34 @@ class ReportController extends Controller
                     WHEN reports.type = 'Los' THEN -reports.win_loss
                     ELSE reports.win_loss
                 END) as total_win_loss
+            "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
             DB::raw('SUM(commissions.senior) as total_senior_commission')
@@ -723,6 +974,34 @@ class ReportController extends Controller
                     ELSE reports.win_loss
                 END) as total_win_loss
             "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
+            "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
             DB::raw('SUM(commissions.senior) as total_senior_commission'),    
             // DB::raw('SUM(commissions.master) as total_master_commission')     
@@ -785,6 +1064,34 @@ class ReportController extends Controller
                     WHEN reports.type = 'Los' THEN -reports.win_loss
                     ELSE reports.win_loss
                 END) as total_win_loss
+            "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
             "),
             DB::raw('SUM(commissions.senior) as total_senior_commission'),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
@@ -854,6 +1161,20 @@ class ReportController extends Controller
                     WHEN reports.type = 'Los' THEN -reports.win_loss
                     ELSE reports.win_loss
                 END) as total_win_loss
+            "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
@@ -926,6 +1247,20 @@ class ReportController extends Controller
                     ELSE reports.win_loss
                 END) as total_win_loss
             "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission')
         )
         ->where('reports.created_at', '>=', $startDate)
@@ -991,6 +1326,34 @@ class ReportController extends Controller
                     WHEN reports.type = 'Los' THEN -reports.win_loss
                     ELSE reports.win_loss
                 END) as total_win_loss
+            "),
+            DB::raw("
+            SUM(CASE 
+                WHEN reports.type IN ('Los', 'Win') THEN 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END) - commissions.ssenior
+                ELSE 
+                    (CASE 
+                        WHEN reports.type = 'Los' THEN -reports.win_loss
+                        ELSE reports.win_loss
+                    END)
+            END) as total_adjusted_win_loss_with_ssenior
+            "),
+            DB::raw("
+                SUM(CASE 
+                    WHEN reports.type IN ('Los', 'Win') THEN 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END) - commissions.senior
+                    ELSE 
+                        (CASE 
+                            WHEN reports.type = 'Los' THEN -reports.win_loss
+                            ELSE reports.win_loss
+                        END)
+                END) as total_adjusted_win_loss_with_senior
             "),
             DB::raw('SUM(commissions.ssenior) as total_ssenior_commission'),  
             DB::raw('SUM(commissions.senior) as total_senior_commission'),    

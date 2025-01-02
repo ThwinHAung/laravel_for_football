@@ -28,16 +28,28 @@ class MatchesController extends Controller
     
         return response()->json($pending_matches, 200);
     }
-      public function matchHistory()
+    public function matchHistory()
     {
         $endOfToday = Carbon::tomorrow()->subSecond();
         $startOfYesterday = Carbon::yesterday();
     
-        $pending_matches = Matches::where('IsEnd', true)
-            ->select('matches.id', 'matches.League', 'matches.HomeTeam', 'matches.AwayTeam', 'matches.MatchTime', 'matches.HomeGoal', 'matches.AwayGoal')
+        $pending_matches = Matches::where(function ($query) {
+                $query->where('IsEnd', true)
+                      ->orWhere('IsPost', true); // Include postponed matches
+            })
+            ->select(
+                'matches.id', 
+                'matches.League', 
+                'matches.HomeTeam', 
+                'matches.AwayTeam', 
+                'matches.MatchTime', 
+                'matches.HomeGoal', 
+                'matches.AwayGoal',
+                'matches.IsPost'
+            )
             ->whereBetween('matches.created_at', [$startOfYesterday, $endOfToday])
             ->get();
-        
+    
         return response()->json($pending_matches, 200);
     }
 
@@ -47,7 +59,7 @@ class MatchesController extends Controller
         $endDate = $request->query('end_date');
     
         $pending_matches = Matches::where('IsEnd', true)
-            ->select('matches.id', 'matches.League', 'matches.HomeTeam', 'matches.AwayTeam', 'matches.MatchTime', 'matches.HomeGoal', 'matches.AwayGoal')
+            ->select('matches.id', 'matches.League', 'matches.HomeTeam', 'matches.AwayTeam', 'matches.MatchTime', 'matches.HomeGoal', 'matches.AwayGoal','matches.IsPost')
             ->whereBetween('matches.created_at', [$startDate, $endDate])
             ->get();
         
