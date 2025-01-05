@@ -160,7 +160,8 @@ class BetController extends Controller
             'matches.GpUnit',
             'matches.HomeGoal',
             'matches.AwayGoal',
-            'matches.League'
+            'matches.League',
+            'matches.IsPost'
         )
         ->first();
 
@@ -183,6 +184,7 @@ class BetController extends Controller
                     'home_goals' => $bet->HomeGoal,
                     'away_goals' => $bet->AwayGoal,
                     'status' => $bet->status,
+                    'IsPost'=>$bet->IsPost
                 ]
             ];
             
@@ -222,7 +224,8 @@ class BetController extends Controller
                 'matches.GpUnit',
                 'matches.HomeGoal',
                 'matches.AwayGoal',
-                'matches.League'
+                'matches.League',
+                'matches.IsPost'
             )
             ->get();
     
@@ -253,6 +256,7 @@ class BetController extends Controller
                     'GpUnit' => $entry->GpUnit,
                     'home_goals' => $entry->HomeGoal,
                     'away_goals' => $entry->AwayGoal,
+                    'IsPost'=>$entry->IsPost
                 ];
             }),
         ];
