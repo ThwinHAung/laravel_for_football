@@ -439,13 +439,12 @@ class PayoutService
         }
 
         $netCommission = $commissionPercentage - $commissionGiven;
-        if ($netCommission <= 0) {
-            break;
-        }
+        // if ($netCommission <= 0) {
+        //     break;
+        // }
 
         $commissionAmount = $betAmount * ($netCommission / 100);
 
-        $this->updateUserBalance($user->id, $commissionAmount);
 
         switch ($currentRole->name) {
             case 'User':
@@ -463,6 +462,10 @@ class PayoutService
             case 'SSenior':
                 $commissionData['ssenior'] = $commissionAmount;
                 break;
+        }
+
+        if ($netCommission > 0){
+            $this->updateUserBalance($user->id, $commissionAmount);
         }
 
         Transition::create([

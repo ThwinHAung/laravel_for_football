@@ -20,7 +20,7 @@ Route::post('v4N1/upload_goals',[MatchesController::class,'updateGoals']);
 Route::group([
     "middleware"=> ["auth:api"],
 ],function(){
-
+    Route::get("getmemberlist", [AuthController::class,"getCreatedUsers"]);
     Route::post("matchupdateStatus",[MatchesController::class,"manual_goal_update"]);
 
     Route::post("register", [AuthController::class,"register"]);
@@ -46,9 +46,9 @@ Route::group([
     Route::get("getoutstandingBalance", [StatusController::class,"outstanding_balance"]);
     Route::get("getUserTrasition",[TransitionController::class,'userTransition']);
 
-     Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
+    Route::get("getTransaction/{id}",[TransitionController::class,'fetchTransaction']);
     Route::get("getTransactionsForDate/{id}/{date}",[TransitionController::class,'fetchTransactionsForDate']);
-    Route::get("getmemberlist", [AuthController::class,"getCreatedUsers"]);
+
     Route::get("getUserDetails/{id}", [AuthController::class,"getUserDetails"]);
     Route::get("get_balance",[AuthController::class,"balance"]);
     Route::get("maxAmountBets/{username}",[StatusController::class,"getMixBets"]);

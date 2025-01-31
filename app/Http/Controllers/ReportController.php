@@ -256,9 +256,11 @@ class ReportController extends Controller
         return [
             'home_team' => $match->HomeTeam,
             'away_team' => $match->AwayTeam,
+            'HomeUp'=>$match->HomeUp,
             'goal_score' => $match->HomeGoal . '-' . $match->AwayGoal,
             'odd' => $odd,
             'selected_outcome' => $formattedOutcome,
+            
         ];
     }
     

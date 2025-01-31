@@ -6,6 +6,7 @@ use App\Events\MatchFinished;
 use App\Events\MatchPostponed;
 use App\Models\Accumulator;
 use App\Models\Matches;
+use App\Models\User;
 use App\Services\PayoutService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;

@@ -81,6 +81,7 @@ class PostponeService {
     }
 
     protected function allMatchesCompleted($betId) {
+        
         $activeMatchesCount = Accumulator::where('bet_id', $betId)
             ->whereHas('match', function($query) {
                 $query->where('IsEnd', false)
@@ -91,27 +92,30 @@ class PostponeService {
         if ($activeMatchesCount > 0) {
             return false;
         }
+
         $allPostponed = Accumulator::where('bet_id', $betId)
         ->whereHas('match', function ($query) {
             $query->where('IsPost', true);
         })
         ->count();
+
         $totalMatchesCount = Accumulator::where('bet_id', $betId)->count();
 
         if ($allPostponed == $totalMatchesCount) {
             $this->refundAccumulators($betId);
             return false;
         }
-        $nonPostponedEndedMatchesCount = Accumulator::where('bet_id', $betId)
-        ->whereHas('match', function ($query) {
-            $query->where('IsEnd', true)
-                  ->where('IsPost', false);
-        })
-        ->count();
 
-        if ($nonPostponedEndedMatchesCount > 0) {
-            return false;
-        }
+        // $nonPostponedEndedMatchesCount = Accumulator::where('bet_id', $betId)
+        // ->whereHas('match', function ($query) {
+        //     $query->where('IsEnd', true)
+        //           ->where('IsPost', false);
+        // })
+        // ->count();
+
+        // if ($nonPostponedEndedMatchesCount > 0) {
+        //     return true;
+        // }
         return true;
     }
 
