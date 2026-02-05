@@ -1,66 +1,123 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Champions Maung – Backend API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This repository contains the **Laravel backend API** for **Champions Maung**, a football betting platform using **Myanmar-style odds**.  
+The backend serves a Flutter frontend and handles authentication, betting logic, wallet transactions, role-based access, and reporting.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Backend API for football betting system
+- Token-based authentication using **Laravel Passport**
+- Strict **role-based hierarchy** with parent–child relationships
+- Supports **single** and **accumulator** betting
+- Wallet balance management, payouts, and transaction tracking
+- Reporting system for upper-level roles
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Technology Stack
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Laravel**
+- **Laravel Passport** (OAuth2 token authentication)
+- **MySQL**
+- RESTful API architecture
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Authentication
 
-## Laravel Sponsors
+- Token-based authentication using **Laravel Passport**
+- All protected endpoints require a valid access token
+- Tokens are issued on login and used by the frontend application
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+---
 
-### Premium Partners
+## Role Hierarchy
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+Roles are structured from top to bottom as follows:
 
-## Contributing
+1. **SSSenior** *(system owner – only one account)*
+2. **SSenior**
+3. **Senior**
+4. **Master**
+5. **Agent**
+6. **User**
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Role Rules
 
-## Code of Conduct
+- Accounts can only be created by their **direct parent role**
+- This structure ensures correct **commission, share, and reporting flow**
+- Each role can access **only its own downline**
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## Role Capabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### User
+- Place bets (single & accumulator)
+- View betting history
+- View transaction history
+- View match results
+- View company announcements
+
+### Agent and Above
+- Cannot place bets
+- View downline performance and activity
+- Access reports for:
+  - Daily
+  - Weekly
+  - Monthly
+  - Yearly
+  - Custom date range
+- View betting history and transaction history of their children
+
+#### Downline Visibility Examples
+
+- **Agent** → Users created by that Agent
+- **Master** → Agents created by Master + their Users
+- **Senior / SSenior / SSSenior** → Expanded access based on hierarchy
+
+---
+
+## Core Features
+
+### Betting System
+- Single match betting
+- Accumulator (multiple matches) betting
+- Myanmar-style odds
+- Automatic win/lose calculation
+- Payout settlement and wallet update
+- Full betting history tracking
+
+### Wallet & Transactions
+- Deposit units
+- Withdraw units
+- Automatic balance adjustments
+- Complete transaction history
+- Parent–child commission flow support
+
+### Match Management
+- Match listings
+- Odds management
+- Match results
+- Bet settlement on result confirmation
+
+### Reporting System
+- User betting activity reports
+- Turnover and win/lose summaries
+- Transaction summaries
+- Date-based filtering (daily to custom range)
+
+### Announcements
+- Company announcements visible to users
+- Managed by upper-level roles
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Developed by **Thwin Htoo Aung**.
+
+This project is **open source** and available for anyone who wants to learn, use, or extend it.  
+Feel free to explore the codebase, collaborate, and ask questions if there is anything you do not understand about the project.
